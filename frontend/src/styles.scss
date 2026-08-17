@@ -1,0 +1,11 @@
+/* Global styles. The prototype's design system (palette, type, spacing) is
+   ported faithfully in Stage 5 — this is deliberately minimal for now. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}

@@ -1,0 +1,32 @@
+# Fly.io app config for the QuickDot backend.
+# Deploy with: fly launch --copy-config --no-deploy   (first time, to create the app)
+#              fly deploy                              (subsequent deploys)
+#
+# `app` below is a placeholder — replace with the real app name you choose
+# in `fly launch`, and update DNS / frontend config to match.
+app = "quickdot-api"
+primary_region = "yyz" # Toronto — closest Fly.io region to Ontario; change if needed
+
+[build]
+
+[env]
+  # PORT is set by Fly automatically; the app reads it via ${PORT:8080}.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Always-on: never scale to zero, so there is no cold-start on first visit.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
