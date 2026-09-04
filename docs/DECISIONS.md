@@ -102,3 +102,137 @@ only live while the dev machine and `cloudflared` are running, so it's a dev
 convenience, not a substitute for the always-on Fly deploy Stage 0 actually
 requires to be marked done. See `docs/DEPLOY.md` §1 for setup and
 `docs/KNOWLEDGE.md` for current status.
+
+---
+
+## ADR-0005: IP-based room rate limits deferred to Stage 6, not built in Stage 1
+
+**Date:** 2026-09-04
+**Stage:** 1
+
+**Context:** Spec §6 lists per-IP room creation limits (≤20/hour) and
+concurrent-room limits (≤5/IP) as server-enforced. Stage 1's own "done when"
+criteria (spec §8) only asks for create/join/expire correctness under unit
+tests, and the spec's staged plan puts general abuse hardening in Stage 6.
+Building IP-based rate limiting now would mean building a rate-limiter
+component with no consumer yet exercising it under real traffic patterns.
+
+**Decision:** Implement the room domain (`RoomRegistry`, `Room`,
+`Participant`) in Stage 1 without IP-based creation/concurrency limits.
+`Participant.ip` is still captured at join time so Stage 6 has the field to
+key a limiter off; the limiter itself is Stage 6 scope.
+
+**Consequences:** Until Stage 6, `RoomRegistry.createRoom()` has no per-IP
+cap — acceptable for local development but not for anything internet-facing.
+This must land before Stage 7 sign-off (spec §9 requires all §6 limits
+enforced server-side). Tracked as a Stage 6 task, not re-added to
+`KNOWLEDGE.md` since it's already accounted for in the spec's own stage plan.
+
+---
+
+## ADR-0006: Spring Boot 4.1 ships Jackson 3.x — `tools.jackson.*`, not `com.fasterxml.jackson.*`
+
+**Date:** 2026-09-04
+**Stage:** 2
+
+**Context:** Writing the WebSocket protocol handling (Stage 2) needed
+`ObjectMapper`/`JsonNode` for the JSON control messages in spec §5. The
+`dependency:tree` output shows `spring-boot-starter-webmvc` pulls in
+`tools.jackson.core:jackson-databind:3.1.4`, not the `com.fasterxml.jackson.core`
+groupId used by Jackson 2.x — Spring Boot 4.1 has moved to Jackson 3, which
+renamed its Java package root from `com.fasterxml.jackson.*` to
+`tools.jackson.*` (only `jackson-annotations` stays under `com.fasterxml`).
+This wasn't previously called out — ADR-0001 flagged Spring Boot 4.x's Maven
+artifact-id changes but not this package rename, since it hadn't been hit yet.
+
+**Decision:** Import `tools.jackson.databind.ObjectMapper` /
+`tools.jackson.databind.JsonNode` throughout the backend, not the `com.fasterxml`
+equivalents. Also use Jackson 3's renamed `JsonNode.asString(default)` instead
+of the now-deprecated `asText(default)`.
+
+**Consequences:** Any future code, snippet, or dependency added by pattern-matching
+against Jackson 2.x tutorials/docs (the overwhelming majority of what's publicly
+documented) will need this substitution. Records serialize out of the box with
+Jackson 3's default `ObjectMapper` — no extra module needed, verified via the
+`ws` package's unit tests.
+
+---
+
+## ADR-0007: Added `POST /api/rooms` — not in spec §5, but required for the app to function
+
+**Date:** 2026-09-04
+**Stage:** 1 (retrofit) / 3
+
+**Context:** Spec §5 defines the WebSocket protocol assuming a room already
+exists, and spec §4's domain model covers room creation at the registry
+level, but no part of the spec defines how a room actually gets minted before
+a creator has a code to share. The prototype (`quickdot.html`) generates codes
+entirely client-side with no backend, which doesn't apply once creation must
+be server-authoritative (the client is never trusted — `CLAUDE.md`). Without
+some HTTP entry point, `RoomRegistry.createRoom()` is unreachable from outside
+the process.
+
+**Decision:** Add `RoomController` (`room` package) exposing
+`POST /api/rooms` → `{code, expiresAt}`, calling `RoomRegistry.createRoom()`
+directly. This is also the natural home for the per-IP room-creation rate
+limit deferred to Stage 6 (ADR-0005) — that limit attaches to this endpoint.
+
+**Consequences:** The Angular "Create a room" flow (Stage 5) calls this
+endpoint, then opens the WebSocket connection with the returned code. No spec
+change needed — this fills an implementation gap the spec's staged
+description didn't spell out, rather than contradicting it.
+
+---
+
+## ADR-0008: MIME sniffing via a curated dangerous-type set, not an extension↔MIME cross-reference
+
+**Date:** 2026-09-04
+**Stage:** 4
+
+**Context:** Spec §6 requires rejecting a file "if the sniffed type is
+executable or contradicts a claimed-safe type" — e.g. an `.exe` renamed to
+`.png` to dodge the extension blocklist. `org.apache.tika.Tika.detect(byte[])`
+(tika-core 4.0.0, magic-byte detection only — no `tika-parsers` needed)
+reliably identifies these from a small header sample: confirmed empirically
+that an MZ header detects as `application/x-msdownload`, an ELF header as
+`application/x-executable`, and a `#!/bin/bash` shebang as `application/x-sh`.
+Building a full extension↔MIME cross-reference matrix (to catch every
+possible "declared extension doesn't match sniffed type" mismatch) would be
+substantially more code for marginal additional coverage beyond "is this
+thing actually an executable/script."
+
+**Decision:** `relay.MimeSniffer` detects the MIME type from magic bytes only
+(never the filename or declared type) and rejects it against a curated
+`DANGEROUS_MIME_TYPES` set (PE/ELF/Mach-O executables, shell scripts, JARs).
+The sniff runs once, on the first chunk of a transfer (spec: `file-start`
+carries no bytes, so that's the first point any exist to sniff), and that one
+chunk is the only bytes ever held in memory — full-file buffering is never
+needed since the check only needs a small header sample.
+
+**Consequences:** This catches the classic disguise attack (executable
+renamed to an allowed extension) but doesn't catch every declared-vs-sniffed
+MIME *mismatch* that isn't inherently dangerous (e.g. a `.txt` that's
+actually a `.png` — mislabeled but harmless). Acceptable for v1: the safety
+goal is blocking executables/scripts, not perfect type-declaration honesty.
+
+---
+
+## ADR-0009: `@SpringBootTest` needs `RANDOM_PORT`, not the default MOCK environment
+
+**Date:** 2026-09-04
+**Stage:** 4
+
+**Context:** Adding `ServletServerContainerFactoryBean` (`ws.WebSocketConfig`,
+to size the WebSocket frame buffers for one 256 KB chunk) broke
+`QuickdotApplicationTests.contextLoads` with `IllegalStateException:
+Attribute 'jakarta.websocket.server.ServerContainer' not found in
+ServletContext`. That bean only resolves against a real JSR-356 container —
+the default `@SpringBootTest` web environment (`MOCK`) never starts one.
+
+**Decision:** Changed `QuickdotApplicationTests` to
+`@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)`, which boots
+an actual embedded Tomcat and satisfies the attribute lookup.
+
+**Consequences:** The context-load smoke test is slightly slower (a real
+server starts) but now actually proves the app boots the way it will in
+production, which `MOCK` never fully did anyway.

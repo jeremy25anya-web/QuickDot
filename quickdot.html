@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickDot — move something between two devices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEF0EC;
+    --paper-raised:#F7F8F5;
+    --ink:#171C1A;
+    --ink-soft:#5B635F;
+    --ink-faint:#9AA19C;
+    --line:#D8DCD6;
+    --line-strong:#C4C9C2;
+    --signal:#C6462F;      /* iron-oxide rust — the one accent */
+    --signal-dim:#C6462F33;
+    --ok:#2E6E4E;
+    --radius:14px;
+    --radius-sm:10px;
+    --shadow:0 1px 2px rgba(23,28,26,.04), 0 8px 30px rgba(23,28,26,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-weight:450;
+    -webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;min-height:100%;
+    line-height:1.5;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input{font-family:inherit}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+  a{color:var(--signal);text-decoration:none;border-bottom:1px solid var(--signal-dim)}
+  a:hover{border-bottom-color:var(--signal)}
+
+  /* ---------- shell ---------- */
+  .wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    width:100%;max-width:640px;margin:0 auto;padding:32px 24px}
+  .topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
+    padding:20px 26px;pointer-events:none}
+  .brandmark{display:flex;align-items:baseline;gap:2px;font-family:'Space Grotesk';font-weight:600;
+    letter-spacing:-.02em;font-size:16px;color:var(--ink)}
+  .brandmark .dot{width:7px;height:7px;border-radius:50%;background:var(--signal);
+    display:inline-block;margin-left:1px;transform:translateY(-1px)}
+  footer{padding:22px;text-align:center;font-size:12px;color:var(--ink-faint);letter-spacing:.01em}
+  footer .a{color:var(--ink-soft)}
+  footer .fdot{width:5px;height:5px;border-radius:50%;background:var(--signal);display:inline-block;margin:0 5px 0 6px;vertical-align:middle}
+
+  /* ---------- landing ---------- */
+  .hero{width:100%;text-align:center;animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+  .kicker{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-faint);margin-bottom:22px}
+  h1{font-family:'Space Grotesk';font-weight:600;letter-spacing:-.03em;line-height:1.02;
+    font-size:clamp(38px,8vw,64px);margin:0 0 18px}
+  h1 .em{position:relative;white-space:nowrap}
+  h1 .em::after{content:"";position:absolute;right:-13px;bottom:.16em;width:9px;height:9px;border-radius:50%;background:var(--signal)}
+  .sub{font-size:17px;color:var(--ink-soft);max-width:34ch;margin:0 auto 40px}
+  .actions{display:flex;flex-direction:column;gap:14px;width:100%;max-width:340px;margin:0 auto}
+  .btn-primary{background:var(--ink);color:var(--paper-raised);padding:16px 20px;border-radius:var(--radius);
+    font-weight:600;font-size:16px;letter-spacing:-.01em;transition:transform .12s ease, background .2s;
+    box-shadow:var(--shadow)}
+  .btn-primary:hover{background:#0d1210;transform:translateY(-1px)}
+  .btn-primary:active{transform:translateY(0)}
+  .joinrow{display:flex;gap:8px;background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:var(--radius);padding:6px;transition:border-color .2s, box-shadow .2s}
+  .joinrow:focus-within{border-color:var(--line-strong);box-shadow:var(--shadow)}
+  .joinrow input{flex:1;background:none;border:none;outline:none;padding:11px 12px;font-size:16px;
+    letter-spacing:.32em;text-transform:uppercase;font-family:'JetBrains Mono';color:var(--ink)}
+  .joinrow input::placeholder{color:var(--ink-faint);letter-spacing:.28em}
+  .joinrow button{padding:0 18px;border-radius:9px;font-weight:600;font-size:15px;color:var(--ink-soft);
+    transition:color .2s, background .2s}
+  .joinrow button:hover{color:var(--ink);background:var(--paper)}
+  .divider{display:flex;align-items:center;gap:14px;color:var(--ink-faint);font-size:12px;
+    letter-spacing:.14em;text-transform:uppercase;margin:2px 0}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .note{margin-top:34px;font-size:13px;color:var(--ink-faint);line-height:1.6}
+  .note b{color:var(--ink-soft);font-weight:500}
+
+  /* ---------- room ---------- */
+  .room{width:100%;display:none;flex-direction:column;height:100dvh;max-width:640px;
+    padding:0 4px;animation:rise .4s cubic-bezier(.2,.7,.2,1) both}
+  .room.on{display:flex}
+  .roomhead{padding:26px 18px 18px;display:flex;flex-direction:column;align-items:center;gap:16px}
+
+  /* the signature: live link + ttl ring */
+  .link{position:relative;width:132px;height:52px;display:flex;align-items:center;justify-content:space-between}
+  .node{width:16px;height:16px;border-radius:50%;flex:none;position:relative;z-index:2}
+  .node.me{background:var(--ink)}
+  .node.them{background:transparent;border:2px solid var(--line-strong);transition:all .4s}
+  .link.live .node.them{background:var(--signal);border-color:var(--signal);
+    box-shadow:0 0 0 6px var(--signal-dim)}
+  .wire{position:absolute;left:16px;right:16px;top:50%;height:2px;background:var(--line-strong);
+    transform:translateY(-50%);overflow:hidden}
+  .wire::after{content:"";position:absolute;top:0;left:-40%;width:40%;height:100%;background:var(--signal);
+    opacity:0;border-radius:2px}
+  .link.live .wire{background:var(--signal-dim)}
+  .link.live .wire::after{opacity:1;animation:travel 1.6s linear infinite}
+
+  .status{text-align:center}
+  .status .state{font-size:13px;color:var(--ink-soft);font-weight:500}
+  .status .state b{color:var(--signal);font-weight:600}
+
+  .codecard{display:flex;align-items:center;gap:0;background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .codeval{font-family:'JetBrains Mono';font-weight:700;font-size:26px;letter-spacing:.22em;
+    padding:14px 8px 14px 22px;color:var(--ink)}
+  .codebtns{display:flex;border-left:1px solid var(--line)}
+  .codebtns button{padding:0 15px;height:56px;font-size:12px;font-weight:600;color:var(--ink-soft);
+    letter-spacing:.02em;transition:background .18s,color .18s;position:relative}
+  .codebtns button:hover{background:var(--paper);color:var(--ink)}
+  .codebtns button+button{border-left:1px solid var(--line)}
+  .ttl{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono';font-size:12px;color:var(--ink-faint)}
+  .ttl .rdot{width:6px;height:6px;border-radius:50%;background:var(--ink-faint)}
+  .ttl.warn{color:var(--signal)}
+  .ttl.warn .rdot{background:var(--signal);animation:blink 1s steps(2) infinite}
+
+  /* feed */
+  .feed{flex:1;overflow-y:auto;padding:8px 14px 14px;display:flex;flex-direction:column;gap:10px}
+  .empty{margin:auto;text-align:center;color:var(--ink-faint);font-size:14px;max-width:26ch;line-height:1.6}
+  .empty .big{font-family:'Space Grotesk';font-size:15px;color:var(--ink-soft);margin-bottom:4px}
+  .item{position:relative;max-width:82%;padding:11px 14px;border-radius:var(--radius);font-size:15px;line-height:1.5;
+    word-break:break-word;animation:pop .28s cubic-bezier(.2,.8,.2,1) both;box-shadow:var(--shadow)}
+  .item.out{align-self:flex-end;background:var(--ink);color:var(--paper-raised);border-bottom-right-radius:5px}
+  .item.in{align-self:flex-start;background:var(--paper-raised);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .item.out a{color:#f0c9bf;border-bottom-color:#f0c9bf55}
+  .item .who{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin-bottom:3px;font-weight:600;padding-right:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dots{position:absolute;top:5px;right:6px;width:22px;height:22px;border-radius:6px;display:flex;
+    align-items:center;justify-content:center;font-size:17px;line-height:1;color:currentColor;
+    opacity:.32;transition:opacity .15s,background .15s}
+  .item:hover .dots{opacity:.7}
+  .dots:hover{opacity:1;background:rgba(120,120,120,.15)}
+  .item.out .dots:hover{background:rgba(255,255,255,.18)}
+  .menu{position:fixed;display:none;background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:11px;box-shadow:var(--shadow);padding:5px;min-width:134px;z-index:60}
+  .menu button{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:7px;
+    font-size:14px;color:var(--ink);transition:background .12s}
+  .menu button:hover{background:var(--paper)}
+  .mename{font-family:'JetBrains Mono';font-size:11.5px;color:var(--ink-faint);letter-spacing:.02em;margin-top:5px}
+  .mename b{color:var(--ink-soft);font-weight:600}
+  .item img{max-width:100%;border-radius:8px;display:block;margin-top:2px}
+  .file{display:flex;align-items:center;gap:11px;text-decoration:none;border:none!important}
+  .file .fic{width:38px;height:38px;border-radius:9px;background:var(--signal-dim);color:var(--signal);
+    display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;font-weight:700;font-family:'JetBrains Mono'}
+  .item.out .file .fic{background:#ffffff22;color:#f0c9bf}
+  .file .fmeta{min-width:0}
+  .file .fname{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+  .file .fsize{font-size:11px;font-family:'JetBrains Mono';opacity:.6;margin-top:1px}
+
+  /* composer */
+  .composer{padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);
+    display:flex;gap:9px;align-items:flex-end;background:var(--paper)}
+  .composer .box{flex:1;display:flex;align-items:flex-end;gap:6px;background:var(--paper-raised);
+    border:1px solid var(--line);border-radius:var(--radius);padding:5px 5px 5px 6px;transition:border-color .2s,box-shadow .2s}
+  .composer .box:focus-within{border-color:var(--line-strong);box-shadow:var(--shadow)}
+  .attach{width:40px;height:40px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-soft);transition:background .18s,color .18s}
+  .attach:hover{background:var(--paper);color:var(--ink)}
+  .ta{flex:1;border:none;outline:none;background:none;resize:none;font-size:15px;line-height:1.45;
+    padding:10px 4px;max-height:120px;color:var(--ink)}
+  .ta::placeholder{color:var(--ink-faint)}
+  .send{width:40px;height:40px;flex:none;border-radius:9px;background:var(--ink);color:var(--paper-raised);
+    display:flex;align-items:center;justify-content:center;transition:transform .12s,opacity .2s}
+  .send:hover{transform:translateY(-1px)}
+  .send:disabled{opacity:.32;transform:none;cursor:default}
+  .close{color:var(--ink-faint);font-size:13px;font-weight:500;padding:8px 12px;border-radius:8px;transition:color .18s,background .18s}
+  .close:hover{color:var(--signal);background:var(--paper-raised)}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%) translateY(14px);
+    background:var(--ink);color:var(--paper-raised);padding:11px 17px;border-radius:11px;font-size:13.5px;
+    font-weight:500;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.2,.8,.2,1);
+    max-width:88vw;text-align:center;z-index:50}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--signal)}
+
+  svg{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes travel{from{left:-40%}to{left:100%}}
+  @keyframes blink{50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:420px){.codeval{font-size:22px;padding-left:16px;letter-spacing:.16em}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brandmark">quickdot<span class="dot"></span></div>
+</div>
+
+<!-- ============ LANDING ============ -->
+<main class="wrap" id="landing">
+  <section class="hero">
+    <div class="kicker">no account · no download · gone when you close it</div>
+    <h1>Move something<br><span class="em">between two devices</span></h1>
+    <p class="sub">Open a room, share the code, pass text, links, images or files. Close it and everything's gone.</p>
+    <div class="actions">
+      <button class="btn-primary" id="createBtn">Create a room</button>
+      <div class="divider">or join one</div>
+      <div class="joinrow">
+        <input id="joinInput" maxlength="6" placeholder="ENTER CODE" autocomplete="off" spellcheck="false" aria-label="Room code">
+        <button id="joinBtn">Join</button>
+      </div>
+    </div>
+    <p class="note">Files are capped at <b>25&nbsp;MB</b>. Executables are blocked. Rooms self-destruct after <b>30&nbsp;minutes</b>.</p>
+  </section>
+</main>
+
+<!-- ============ ROOM ============ -->
+<section class="room" id="room" aria-hidden="true">
+  <div class="roomhead">
+    <div class="link" id="link">
+      <span class="node me"></span>
+      <span class="wire"></span>
+      <span class="node them"></span>
+    </div>
+    <div class="status"><div class="state" id="state">Waiting for someone to join…</div><div class="mename" id="mename"></div></div>
+    <div class="codecard">
+      <div class="codeval" id="codeVal">------</div>
+      <div class="codebtns">
+        <button id="copyCode">Copy code</button>
+        <button id="copyLink">Copy link</button>
+      </div>
+    </div>
+    <div class="ttl" id="ttl"><span class="rdot"></span><span id="ttlText">30:00 left</span></div>
+  </div>
+
+  <div class="feed" id="feed" aria-live="polite">
+    <div class="empty" id="empty">
+      <div class="big">Nothing here yet.</div>
+      Share your code, then send the first thing.
+    </div>
+  </div>
+
+  <div class="composer">
+    <button class="close" id="closeBtn" title="Close room and wipe everything">Close</button>
+    <div class="box">
+      <button class="attach" id="attachBtn" aria-label="Attach a file" title="Attach a file (max 25 MB)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <textarea class="ta" id="ta" rows="1" placeholder="Type or paste something…" aria-label="Message"></textarea>
+      <button class="send" id="sendBtn" disabled aria-label="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+  </div>
+  <input type="file" id="fileInput" hidden>
+</section>
+
+<footer>An <span class="a">Amartian</span> product<span class="fdot"></span>ephemeral by design</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+(function(){
+  // ---------- config ----------
+  var MAX_BYTES = 25 * 1024 * 1024;          // 25 MB
+  var TTL_MS = 30 * 60 * 1000;               // 30 minutes
+  var BLOCKED = ['exe','bat','cmd','com','msi','scr','ps1','sh','bash','vbs','vbe','jar','apk','deb','dmg','pkg','app','gadget','cpl','msc','wsf','hta','reg'];
+  var ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+
+  // whimsical participant names. swap these two lists for the alien set
+  // (e.g. ADJ:['Zephyric','Xandric','Vollan'], CREA:['Zeflex','Xornak','Quilth']) any time.
+  var ADJ = ['Amorphous','Spontaneous','Velvet','Nimble','Cosmic','Wandering','Curious','Gentle','Luminous','Peculiar','Dapper','Sleepy','Electric','Mellow','Radiant','Wobbly','Sublime','Brave','Quiet','Plucky'];
+  var CREA = ['Duckling','Manatee','Pangolin','Otter','Wombat','Axolotl','Narwhal','Heron','Lynx','Cuttlefish','Tapir','Puffin','Quokka','Salamander','Meerkat','Capybara','Firefly','Jellyfish','Marmot','Ibex'];
+  function pick(a){return a[Math.floor(Math.random()*a.length)];}
+  function genName(){return pick(ADJ)+' '+pick(CREA);}
+
+  // ---------- state ----------
+  var me = 'p' + Math.random().toString(36).slice(2, 9);
+  var myName = genName();
+  var code = null, chan = null, peers = {}, items = {}, ttlEnd = 0;
+  var ttlTimer = null, presenceTimer = null;
+
+  // ---------- els ----------
+  var $ = function(id){return document.getElementById(id)};
+  var landing=$('landing'), room=$('room'), feed=$('feed'), empty=$('empty');
+  var linkEl=$('link'), stateEl=$('state'), codeVal=$('codeVal'), ttlEl=$('ttl'), ttlText=$('ttlText');
+  var ta=$('ta'), sendBtn=$('sendBtn'), fileInput=$('fileInput'), toastEl=$('toast');
+
+  // ---------- helpers ----------
+  function genCode(){var c='';for(var i=0;i<6;i++)c+=ALPHABET[Math.floor(Math.random()*ALPHABET.length)];return c;}
+  function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB';}
+  function ext(name){var p=name.split('.');return p.length>1?p.pop().toLowerCase():'';}
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+  var toastT;
+  function toast(msg,isErr){toastEl.textContent=msg;toastEl.className='toast on'+(isErr?' err':'');clearTimeout(toastT);toastT=setTimeout(function(){toastEl.className='toast';},2600);}
+  function linkify(text){
+    var html=esc(text);
+    return html.replace(/(https?:\/\/[^\s<]+)/g,function(u){return '<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+u+'</a>';});
+  }
+  function touchPeer(id,name){
+    if(!peers[id])peers[id]={t:0,name:name||'Someone'};
+    peers[id].t=Date.now();
+    if(name)peers[id].name=name;
+  }
+  function adoptTtl(end){ if(end && (!ttlEnd || end<ttlEnd)) ttlEnd=end; }
+  function downloadItem(it){
+    if(!it.url)return;
+    var a=document.createElement('a');a.href=it.url;
+    a.download=it.name||(it.kind==='image'?'quickdot-image.png':'quickdot-file');
+    document.body.appendChild(a);a.click();a.remove();
+  }
+
+  // ---------- room lifecycle ----------
+  function openRoom(c){
+    code=c;
+    codeVal.textContent=c;
+    landing.style.display='none';
+    room.classList.add('on');
+    room.setAttribute('aria-hidden','false');
+    chan=new BroadcastChannel('quickdot-room-'+c);
+    chan.onmessage=onMessage;
+    ttlEnd=Date.now()+TTL_MS; // provisional; a peer already in the room will share the real one
+    startTtl();
+    $('mename').innerHTML='you\u2019re <b>'+esc(myName)+'</b>';
+    // announce presence
+    send({t:'hello',sender:myName});
+    presenceTimer=setInterval(function(){
+      send({t:'ping',sender:myName});
+      // prune stale peers (no ping in 8s)
+      var now=Date.now(),changed=false;
+      for(var id in peers){if(now-peers[id].t>8000){delete peers[id];changed=true;}}
+      if(changed)renderPresence();
+    },3000);
+    ta.focus();
+    // update shareable link hash (mechanic for real deployment)
+    try{history.replaceState(null,'',location.pathname+'#'+c);}catch(e){}
+  }
+
+  function closeRoom(wiped){
+    hideMenu();
+    if(presenceTimer)clearInterval(presenceTimer);
+    if(ttlTimer)clearInterval(ttlTimer);
+    if(chan){send({t:'bye'});chan.close();chan=null;}
+    // wipe
+    for(var id in items){if(items[id].url)URL.revokeObjectURL(items[id].url);}
+    items={};peers={};code=null;
+    feed.querySelectorAll('.item').forEach(function(n){n.remove()});
+    empty.style.display='';
+    room.classList.remove('on');
+    room.setAttribute('aria-hidden','true');
+    landing.style.display='';
+    try{history.replaceState(null,'',location.pathname);}catch(e){}
+    if(wiped)toast(wiped);
+  }
+
+  // ---------- TTL ----------
+  function startTtl(){
+    tick();
+    ttlTimer=setInterval(tick,1000);
+    function tick(){
+      var left=ttlEnd-Date.now();
+      if(left<=0){clearInterval(ttlTimer);closeRoom('Room expired. Everything\u2019s gone.');return;}
+      var m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);
+      ttlText.textContent=m+':'+(s<10?'0':'')+s+' left';
+      ttlEl.className='ttl'+(left<120000?' warn':'');
+    }
+  }
+
+  // ---------- presence ----------
+  function renderPresence(){
+    var n=Object.keys(peers).length;
+    if(n>0){
+      linkEl.classList.add('live');
+      stateEl.innerHTML=n===1?'<b>Connected</b> \u00b7 2 in the room':'<b>Connected</b> \u00b7 '+(n+1)+' in the room';
+    }else{
+      linkEl.classList.remove('live');
+      stateEl.textContent='Waiting for someone to join\u2026';
+    }
+  }
+
+  // ---------- messaging ----------
+  function send(obj){obj.from=me;if(chan)chan.postMessage(obj);}
+
+  function onMessage(e){
+    var d=e.data; if(!d||d.from===me)return;
+    switch(d.t){
+      case 'hello':
+        touchPeer(d.from,d.sender); renderPresence();
+        // reply with my presence AND the authoritative room expiry
+        send({t:'welcome',sender:myName,ttlEnd:ttlEnd});
+        // re-sync existing items to the newcomer (preserving original sender)
+        Object.keys(items).forEach(function(id){
+          var it=items[id];
+          send({t:'sync',to:d.from,id:id,kind:it.kind,text:it.text,name:it.name,mime:it.mime,blob:it.blob,sender:it.sender});
+        });
+        break;
+      case 'welcome':
+        touchPeer(d.from,d.sender); adoptTtl(d.ttlEnd); renderPresence(); break;
+      case 'ping':
+        touchPeer(d.from,d.sender); renderPresence(); break;
+      case 'bye':
+        delete peers[d.from]; renderPresence(); break;
+      case 'msg':
+        addItem(d.id,{kind:d.kind,text:d.text,name:d.name,mime:d.mime,blob:d.blob,sender:d.sender},false); break;
+      case 'sync':
+        if(d.to===me && !items[d.id])
+          addItem(d.id,{kind:d.kind,text:d.text,name:d.name,mime:d.mime,blob:d.blob,sender:d.sender},false);
+        break;
+    }
+  }
+
+  // ---------- items / rendering ----------
+  function addItem(id,data,outgoing){
+    if(items[id])return;
+    empty.style.display='none';
+    var it={kind:data.kind,text:data.text,name:data.name,mime:data.mime,blob:data.blob,url:null,
+      sender: outgoing ? myName : (data.sender||'Someone')};
+    items[id]=it;
+    var wrap=document.createElement('div');
+    wrap.className='item '+(outgoing?'out':'in');
+    var who=document.createElement('div');who.className='who';
+    who.textContent=outgoing?'you':it.sender;
+    wrap.appendChild(who);
+
+    var dots=document.createElement('button');
+    dots.className='dots';dots.type='button';dots.setAttribute('aria-label','Message actions');
+    dots.textContent='\u22EF';
+    dots.addEventListener('click',function(ev){ev.stopPropagation();toggleMenu(dots,it);});
+    wrap.appendChild(dots);
+
+    if(it.kind==='text'){
+      var body=document.createElement('div');body.innerHTML=linkify(it.text);wrap.appendChild(body);
+    }else{
+      it.url=URL.createObjectURL(it.blob);
+      if(it.kind==='image'){
+        var img=document.createElement('img');img.src=it.url;img.alt=it.name||'shared image';wrap.appendChild(img);
+      }else{
+        var a=document.createElement('a');a.className='file';a.href=it.url;a.download=it.name||'file';
+        a.innerHTML='<span class="fic">'+esc((ext(it.name||'')||'FILE').slice(0,4).toUpperCase())+'</span>'+
+          '<span class="fmeta"><span class="fname">'+esc(it.name||'file')+'</span>'+
+          '<span class="fsize">'+fmtSize(it.blob.size)+' \u00b7 tap to save</span></span>';
+        wrap.appendChild(a);
+      }
+    }
+    feed.appendChild(wrap);
+    feed.scrollTop=feed.scrollHeight;
+  }
+
+  function sendText(){
+    var v=ta.value.trim();if(!v)return;
+    var id='m'+Date.now()+Math.random().toString(36).slice(2,6);
+    addItem(id,{kind:'text',text:v},true);
+    send({t:'msg',id:id,kind:'text',text:v,sender:myName});
+    ta.value='';autosize();updateSend();
+  }
+
+  function sendFile(file){
+    if(!file)return;
+    if(file.size>MAX_BYTES){toast('That\u2019s '+fmtSize(file.size)+'. The limit is 25 MB.',true);return;}
+    var e=ext(file.name);
+    if(BLOCKED.indexOf(e)>-1){toast('Can\u2019t send .'+e+' files \u2014 executables are blocked.',true);return;}
+    var id='f'+Date.now()+Math.random().toString(36).slice(2,6);
+    var isImg=/^image\//.test(file.type);
+    var data={kind:isImg?'image':'file',name:file.name,mime:file.type,blob:file};
+    addItem(id,data,true);
+    send({t:'msg',id:id,kind:data.kind,name:file.name,mime:file.type,blob:file,sender:myName});
+  }
+
+  // ---------- composer wiring ----------
+  function autosize(){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,120)+'px';}
+  function updateSend(){sendBtn.disabled=ta.value.trim().length===0;}
+  ta.addEventListener('input',function(){autosize();updateSend();});
+  ta.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendText();}
+  });
+  sendBtn.addEventListener('click',sendText);
+  $('attachBtn').addEventListener('click',function(){fileInput.click();});
+  fileInput.addEventListener('change',function(){if(fileInput.files[0]){sendFile(fileInput.files[0]);fileInput.value='';}});
+
+  // paste image support
+  ta.addEventListener('paste',function(e){
+    var items=(e.clipboardData||{}).items||[];
+    for(var i=0;i<items.length;i++){
+      if(items[i].kind==='file'){var f=items[i].getAsFile();if(f){e.preventDefault();sendFile(f);}}
+    }
+  });
+
+  // ---------- landing wiring ----------
+  $('createBtn').addEventListener('click',function(){openRoom(genCode());});
+  $('joinBtn').addEventListener('click',doJoin);
+  $('joinInput').addEventListener('keydown',function(e){if(e.key==='Enter')doJoin();});
+  $('joinInput').addEventListener('input',function(e){
+    e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  });
+  function doJoin(){
+    var v=$('joinInput').value.trim().toUpperCase();
+    if(v.length<4){toast('Enter the code you were given.',true);return;}
+    openRoom(v);
+  }
+
+  // ---------- code actions ----------
+  function copy(text,label){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){toast(label);},function(){toast(label);});
+    }else{toast(label);}
+  }
+  $('copyCode').addEventListener('click',function(){copy(code,'Code copied \u2014 send it over.');});
+  $('copyLink').addEventListener('click',function(){copy(location.origin+location.pathname+'#'+code,'Link copied \u2014 anyone with it joins this room.');});
+  $('closeBtn').addEventListener('click',function(){closeRoom('Room closed. Everything\u2019s gone.');});
+
+  // ---------- per-message action menu ----------
+  var menuEl=document.createElement('div');menuEl.className='menu';document.body.appendChild(menuEl);
+  var menuFor=null;
+  function toggleMenu(btn,it){ if(menuFor===btn){hideMenu();return;} showMenu(btn,it); }
+  function showMenu(btn,it){
+    menuEl.innerHTML='';
+    var acts=[];
+    if(it.kind==='text')acts.push(['Copy',function(){copy(it.text,'Copied.');}]);
+    else acts.push(['Download',function(){downloadItem(it);}]);
+    acts.push(['Report',function(){toast('Reported. In the live app this flags the room for review.');}]);
+    acts.forEach(function(a){
+      var b=document.createElement('button');b.type='button';b.textContent=a[0];
+      b.addEventListener('click',function(ev){ev.stopPropagation();a[1]();hideMenu();});
+      menuEl.appendChild(b);
+    });
+    menuEl.style.display='block';
+    var r=btn.getBoundingClientRect();
+    var left=Math.max(8,Math.min(r.right-menuEl.offsetWidth,window.innerWidth-menuEl.offsetWidth-8));
+    var top=r.bottom+6;
+    if(top+menuEl.offsetHeight>window.innerHeight-8)top=r.top-menuEl.offsetHeight-6;
+    menuEl.style.left=left+'px';menuEl.style.top=top+'px';
+    menuFor=btn;
+  }
+  function hideMenu(){menuEl.style.display='none';menuFor=null;}
+  document.addEventListener('click',function(e){
+    if(menuFor && !menuEl.contains(e.target) && !e.target.classList.contains('dots'))hideMenu();
+  });
+  window.addEventListener('resize',hideMenu);
+  feed.addEventListener('scroll',hideMenu);
+
+  // ---------- deep-link / refresh: auto-rejoin ----------
+  window.addEventListener('DOMContentLoaded',function(){
+    var h=(location.hash||'').replace('#','').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(h.length>=4){ $('joinInput').value=h; openRoom(h); } // stay in the room across refresh
+  });
+  // wipe on tab close
+  window.addEventListener('beforeunload',function(){if(chan)send({t:'bye'});});
+})();
+</script>
+</body>
+</html>
