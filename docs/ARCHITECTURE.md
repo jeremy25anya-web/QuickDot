@@ -181,9 +181,44 @@ quickdot/
 
 - Angular (standalone components, no NgModules), SCSS, `ssr=false` (static
   build only — this is a Cloudflare Pages static deploy, no Angular
-  Universal/SSR server).
+  Universal/SSR server). No `zone.js` — the app is zoneless, so all reactive
+  state is Angular signals (WebSocket callbacks and the TTL interval write to
+  signals directly; there's no zone patching to fall back on).
 - Build output: `frontend/dist/frontend/browser` — this is the directory
   Cloudflare Pages should serve.
+
+### Room UI [Stage 5]
+
+- `core/room.service.ts` (`providedIn: 'root'`) — owns the single active
+  room's `WebSocket` and all its state as signals (`you`, `participants`,
+  `items`, `expiresAt`, `connectionState`, `fatalError`, `uploading`). One
+  room is active app-wide at a time, matching the backend's
+  one-connection-per-participant model; `connect(code)` resets prior state.
+  Mirrors `ws.protocol.*` message shapes exactly (`core/protocol.ts`) and the
+  binary chunk framing (`core/chunk-frame.ts` mirrors
+  `relay.ChunkFrame`) byte-for-byte.
+- `core/room-api.service.ts` — `POST /api/rooms` via `HttpClient`.
+- Routing carries the room code (`/r/:code`), not a URL hash like the
+  prototype — this gets "auto-rejoin on refresh" for free (reloading a
+  `/r/:code` tab just reconnects, as a new participant; there's no session
+  token in spec §5 to resume an old one, which matches "no accounts, no
+  identity").
+- File send: chunks the `File` into 256 KB slices client-side (matching
+  `relay.file.chunk-size-bytes`), sends `file-start`, then one binary
+  `ChunkFrame` per slice, then `file-end`. File receive: buffers chunks by
+  `transferId` in memory only until `file-end`, then assembles one `Blob` —
+  never rendered progressively, since neither the spec nor the prototype
+  define a partial-transfer UI state.
+- Per-message ⋯ menu (copy/download/report) is positioned with CSS
+  (`position:absolute` within the message bubble) rather than the
+  prototype's JS bounding-rect calculation — same behavior, no
+  `ElementRef`/measurement code needed.
+- Client-side file-size/extension checks (`core/limits.ts`) mirror the
+  server's spec §6 limits for immediate UX feedback; the server re-checks
+  everything regardless (the client is never trusted).
+- Global design tokens (the prototype's `:root` CSS variables, Google Fonts)
+  live in `src/styles.scss` / `src/index.html`; per-page styles are ported
+  into each component's `.scss` faithfully from `quickdot.html`.
 
 ## Deploy
 

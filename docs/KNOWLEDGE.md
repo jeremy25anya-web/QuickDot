@@ -26,10 +26,6 @@ a record of what was asked and answered.
       connect the repo to Cloudflare Pages for the frontend, add both CNAME
       records. Stage 0 is not "done" per spec until both subdomains serve
       HTTPS and `/healthz` returns 200 in prod.
-- [ ] **Reference prototype `quickdot.html` is not in the repo.** Spec §1 and
-      Stage 5 both point to it as "the approved front-end prototype" to port
-      faithfully. It doesn't exist in this working directory yet — needed
-      before Stage 5 (UI port) can start; not a blocker for Stages 0-4.
 - [ ] **Placeholders to fill before launch** (spec, final section):
       `{{CONTACT_EMAIL}}`, `{{ABUSE_EMAIL}}`, `{{EFFECTIVE_DATE}}`,
       `{{BUSINESS_STRUCTURE}}` (sole proprietorship vs incorporated), and the
@@ -49,3 +45,10 @@ a record of what was asked and answered.
 - [x] Local toolchain (Java 21) — resolved 2026-08-15, Temurin 21 installed via
       winget; Maven not installed globally, using the committed Maven wrapper
       (`backend/mvnw`) instead.
+- [x] Reference prototype `quickdot.html` — added to the repo root
+      2026-09-04 and ported to the Angular frontend in Stage 5 (see ADR-0010,
+      ADR-0011).
+- [x] Stage 5 (Angular UI) — completed 2026-09-04, manually verified
+      end-to-end against a 30-item QA checklist (landing, create/join,
+      presence, messaging, files, per-message menu, lifecycle, safety
+      limits, edge cases) — all passed.

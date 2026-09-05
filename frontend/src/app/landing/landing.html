@@ -1,0 +1,27 @@
+<main class="wrap">
+  <section class="hero">
+    <div class="kicker">no account · no download · gone when you close it</div>
+    <h1>Move something<br><span class="em">between two devices</span></h1>
+    <p class="sub">Open a room, share the code, pass text, links, images or files. Close it and everything's gone.</p>
+    <div class="actions">
+      <button class="btn-primary" [disabled]="creating()" (click)="createRoom()">
+        {{ creating() ? 'Creating…' : 'Create a room' }}
+      </button>
+      <div class="divider">or join one</div>
+      <div class="joinrow">
+        <input
+          maxlength="6"
+          placeholder="ENTER CODE"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Room code"
+          [value]="joinCode()"
+          (input)="onJoinInput($event)"
+          (keydown.enter)="join()"
+        />
+        <button (click)="join()">Join</button>
+      </div>
+    </div>
+    <p class="note">Files are capped at <b>25&nbsp;MB</b>. Executables are blocked. Rooms self-destruct after <b>30&nbsp;minutes</b>.</p>
+  </section>
+</main>

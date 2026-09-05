@@ -1,0 +1,484 @@
+:host {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.room {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 640px;
+  padding: 0 4px;
+  animation: rise .4s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.roomhead {
+  padding: 26px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* the signature: live link + ttl ring */
+.link {
+  position: relative;
+  width: 132px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.node {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex: none;
+  position: relative;
+  z-index: 2;
+
+  &.me {
+    background: var(--ink);
+  }
+
+  &.them {
+    background: transparent;
+    border: 2px solid var(--line-strong);
+    transition: all .4s;
+  }
+}
+
+.link.live .node.them {
+  background: var(--signal);
+  border-color: var(--signal);
+  box-shadow: 0 0 0 6px var(--signal-dim);
+}
+
+.wire {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  height: 2px;
+  background: var(--line-strong);
+  transform: translateY(-50%);
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: var(--signal);
+    opacity: 0;
+    border-radius: 2px;
+  }
+}
+
+.link.live .wire {
+  background: var(--signal-dim);
+
+  &::after {
+    opacity: 1;
+    animation: travel 1.6s linear infinite;
+  }
+}
+
+.status {
+  text-align: center;
+
+  .state {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight: 500;
+
+    b {
+      color: var(--signal);
+      font-weight: 600;
+    }
+  }
+}
+
+.codecard {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.codeval {
+  font-family: 'JetBrains Mono';
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: .22em;
+  padding: 14px 8px 14px 22px;
+  color: var(--ink);
+}
+
+.codebtns {
+  display: flex;
+  border-left: 1px solid var(--line);
+
+  button {
+    padding: 0 15px;
+    height: 56px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: .02em;
+    transition: background .18s, color .18s;
+
+    &:hover {
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    & + button {
+      border-left: 1px solid var(--line);
+    }
+  }
+}
+
+.ttl {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'JetBrains Mono';
+  font-size: 12px;
+  color: var(--ink-faint);
+
+  .rdot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink-faint);
+  }
+
+  &.warn {
+    color: var(--signal);
+
+    .rdot {
+      background: var(--signal);
+      animation: blink 1s steps(2) infinite;
+    }
+  }
+}
+
+/* feed */
+.feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty {
+  margin: auto;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 14px;
+  max-width: 26ch;
+  line-height: 1.6;
+
+  .big {
+    font-family: 'Space Grotesk';
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+}
+
+.item {
+  position: relative;
+  max-width: 82%;
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  line-height: 1.5;
+  word-break: break-word;
+  animation: pop .28s cubic-bezier(.2, .8, .2, 1) both;
+  box-shadow: var(--shadow);
+
+  &.out {
+    align-self: flex-end;
+    background: var(--ink);
+    color: var(--paper-raised);
+    border-bottom-right-radius: 5px;
+
+    // ::ng-deep: the link text is inserted via [innerHTML] (room.ts#linkify),
+    // so it never gets Angular's emulated-encapsulation attribute to scope to.
+    ::ng-deep a {
+      color: #f0c9bf;
+      border-bottom-color: #f0c9bf55;
+    }
+  }
+
+  &.in {
+    align-self: flex-start;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-bottom-left-radius: 5px;
+  }
+
+  .who {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    opacity: .55;
+    margin-bottom: 3px;
+    font-weight: 600;
+    padding-right: 24px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.dots {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  color: currentColor;
+  opacity: .32;
+  transition: opacity .15s, background .15s;
+}
+
+.item:hover .dots {
+  opacity: .7;
+}
+
+.dots:hover {
+  opacity: 1;
+  background: rgba(120, 120, 120, .15);
+}
+
+.item.out .dots:hover {
+  background: rgba(255, 255, 255, .18);
+}
+
+.menu {
+  position: absolute;
+  top: 28px;
+  right: 6px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: var(--shadow);
+  padding: 5px;
+  min-width: 134px;
+  z-index: 60;
+  color: var(--ink);
+
+  button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    border-radius: 7px;
+    font-size: 14px;
+    color: var(--ink);
+    transition: background .12s;
+
+    &:hover {
+      background: var(--paper);
+    }
+  }
+}
+
+.mename {
+  font-family: 'JetBrains Mono';
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  letter-spacing: .02em;
+  margin-top: 5px;
+
+  b {
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+}
+
+.item img {
+  max-width: 100%;
+  border-radius: 8px;
+  display: block;
+  margin-top: 2px;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  border: none !important;
+
+  .fic {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: var(--signal-dim);
+    color: var(--signal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono';
+  }
+
+  .fmeta {
+    min-width: 0;
+  }
+
+  .fname {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
+  }
+
+  .fsize {
+    font-size: 11px;
+    font-family: 'JetBrains Mono';
+    opacity: .6;
+    margin-top: 1px;
+  }
+}
+
+.item.out .file .fic {
+  background: #ffffff22;
+  color: #f0c9bf;
+}
+
+/* composer */
+.composer {
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 9px;
+  align-items: flex-end;
+  background: var(--paper);
+
+  .box {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 5px 5px 5px 6px;
+    transition: border-color .2s, box-shadow .2s;
+
+    &:focus-within {
+      border-color: var(--line-strong);
+      box-shadow: var(--shadow);
+    }
+  }
+}
+
+.attach {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  transition: background .18s, color .18s;
+
+  &:hover {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+  }
+}
+
+.ta {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: none;
+  resize: none;
+  font-size: 15px;
+  line-height: 1.45;
+  padding: 10px 4px;
+  max-height: 120px;
+  color: var(--ink);
+
+  &::placeholder {
+    color: var(--ink-faint);
+  }
+}
+
+.send {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .12s, opacity .2s;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: .32;
+    transform: none;
+    cursor: default;
+  }
+}
+
+.close {
+  color: var(--ink-faint);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: color .18s, background .18s;
+
+  &:hover {
+    color: var(--signal);
+    background: var(--paper-raised);
+  }
+}
+
+@media (max-width: 420px) {
+  .codeval {
+    font-size: 22px;
+    padding-left: 16px;
+    letter-spacing: .16em;
+  }
+}

@@ -1,11 +1,93 @@
-/* Global styles. The prototype's design system (palette, type, spacing) is
-   ported faithfully in Stage 5 — this is deliberately minimal for now. */
+/* Global design tokens and reset, ported from quickdot.html (spec §1: the
+   prototype is the approved reference design). Component-scoped styles live
+   in each component's .scss file. */
+
+:root {
+  --paper: #EEF0EC;
+  --paper-raised: #F7F8F5;
+  --ink: #171C1A;
+  --ink-soft: #5B635F;
+  --ink-faint: #9AA19C;
+  --line: #D8DCD6;
+  --line-strong: #C4C9C2;
+  --signal: #C6462F; /* iron-oxide rust — the one accent */
+  --signal-dim: #C6462F33;
+  --ok: #2E6E4E;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgba(23, 28, 26, .04), 0 8px 30px rgba(23, 28, 26, .06);
+}
 
 * {
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 450;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+a {
+  color: var(--signal);
+  text-decoration: none;
+  border-bottom: 1px solid var(--signal-dim);
+}
+
+a:hover {
+  border-bottom-color: var(--signal);
+}
+
+svg {
+  display: block;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes travel {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+
+@keyframes blink {
+  50% { opacity: .25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

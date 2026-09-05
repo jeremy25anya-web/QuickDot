@@ -1,6 +1,11 @@
-<main class="shell">
-  <h1>QuickDot</h1>
-  <p>The fastest way to move information between two people or two devices.</p>
-</main>
+<div class="topbar">
+  <div class="brandmark">quickdot<span class="dot"></span></div>
+</div>
 
 <router-outlet />
+
+<footer>An <span class="a">Amartian</span> product<span class="fdot"></span>ephemeral by design</footer>
+
+@if (toast.current(); as t) {
+  <div class="toast on" [class.err]="t.error">{{ t.message }}</div>
+}

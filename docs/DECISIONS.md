@@ -236,3 +236,56 @@ an actual embedded Tomcat and satisfies the attribute lookup.
 **Consequences:** The context-load smoke test is slightly slower (a real
 server starts) but now actually proves the app boots the way it will in
 production, which `MOCK` never fully did anyway.
+
+---
+
+## ADR-0010: Permissive CORS on `/api/**`, same rationale as the WebSocket origin policy
+
+**Date:** 2026-09-04
+**Stage:** 5
+
+**Context:** Stage 5 wired the Angular `RoomApiService` to `POST /api/rooms`.
+In local dev the Angular dev server (`localhost:4200`) and the backend
+(`localhost:8080`) are different origins, so the browser blocked the request
+until CORS was configured — the same cross-origin situation `ws.WebSocketConfig`
+already documented for the WebSocket handshake (`setAllowedOriginPatterns("*")`,
+Stage 2), just hitting a plain REST endpoint instead of a socket upgrade.
+
+**Decision:** Added `AppConfig.addCorsMappings` (`web` package),
+allowing all origins on `/api/**` for `GET`/`POST`. Marked with the same
+`TODO(Stage 6)` convention as the WebSocket config.
+
+**Consequences:** `/api/rooms` is callable cross-origin from anywhere until
+Stage 6 locks both this and the WebSocket origin check to the exact
+production frontend origin (spec §6) — tracked there, not re-added to
+`KNOWLEDGE.md` since it's already spec'd as Stage 6 scope.
+
+---
+
+## ADR-0011: Stage 5 UI ships zoneless, room code in the URL path instead of a hash
+
+**Date:** 2026-09-04
+**Stage:** 5
+
+**Context:** The Angular 22 scaffold from Stage 0 has no `zone.js` dependency
+(confirmed: absent from `package.json` and `angular.json`'s build options),
+meaning change detection runs on signals only, with no zone patching
+`setTimeout`/`WebSocket` callbacks. Separately, the prototype (`quickdot.html`)
+identifies a room via a URL *hash* (`#CODE`) purely because it needed
+something to survive a refresh with zero backend involvement (it also used
+`BroadcastChannel` to simulate a server, which doesn't apply once there's a
+real one).
+
+**Decision:** (1) All room state in `core/room.service.ts` is a signal, and
+every async entry point (WebSocket message/close handlers, the TTL
+`setInterval`) writes to signals directly rather than relying on zone-triggered
+change detection. (2) The room code lives in the Angular route path
+(`/r/:code`), not a hash — this makes "auto-rejoin on refresh" (spec Stage 5)
+fall out of normal routing for free, and gives the code a real, linkable URL
+segment.
+
+**Consequences:** Any future component touching room state must use signals
+(a plain mutated class field won't trigger a re-render). Refreshing `/r/:code`
+rejoins as a brand-new participant (new id, new fun name) rather than
+resuming a prior session — consistent with spec §1's "no accounts, no
+identity" and with the protocol (spec §5) having no session-resume concept.
