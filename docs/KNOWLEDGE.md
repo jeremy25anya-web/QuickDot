@@ -38,6 +38,17 @@ a record of what was asked and answered.
       requires both be lawyer-reviewed before launch.
 - [ ] **Sentry account/DSN** not yet set up — needed for Stage 6/7 wiring
       (frontend + backend, errors only, no PII).
+- [ ] **Stage 6 (Hardening) is partially done, not signed off.** Origin lock
+      (WS + CORS), security headers, metadata-only audit logging with 30-day
+      retention, and the frontend reconnect UI are all implemented and
+      tested (see ADR-0012 through ADR-0014) — including an end-to-end
+      hostile-input pass (`OriginCheckIntegrationTest` +
+      `QuickDotWebSocketHandlerTest`'s existing oversized/blocked-type/flood
+      cases). What's still open and blocked on human/deploy action: Sentry
+      (above) and load-testing the §6 limits against a real deployed
+      instance under concurrent traffic (Stage 0's cloud deploy is itself
+      deferred — nothing to load-test against yet). Per `CLAUDE.md`'s stage
+      discipline, don't mark Stage 6 done until both land.
 
 ## Resolved
 

@@ -16,7 +16,9 @@ import {
 } from './protocol';
 import { ToastService } from './toast.service';
 
-export type ConnectionState = 'connecting' | 'open' | 'closed';
+export type ConnectionState = 'connecting' | 'open' | 'reconnecting' | 'closed';
+
+const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000];
 
 interface IncomingTransfer {
   from: ParticipantView;
@@ -52,31 +54,51 @@ export class RoomService {
 
   private socket: WebSocket | null = null;
   private readonly incomingTransfers = new Map<string, IncomingTransfer>();
+  private intentionalClose = false;
+  private reconnectAttempt = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
   connect(code: string): void {
     this.reset();
+    this.intentionalClose = false;
+    this.reconnectAttempt = 0;
     this.code.set(code);
-    this.connectionState.set('connecting');
+    this.openSocket(code);
+  }
+
+  leave(): void {
+    this.intentionalClose = true;
+    clearTimeout(this.reconnectTimer);
+    this.reset();
+  }
+
+  private openSocket(code: string): void {
+    this.connectionState.set(this.reconnectAttempt > 0 ? 'reconnecting' : 'connecting');
 
     const socket = new WebSocket(`${environment.wsBaseUrl}/ws/${code}`);
     socket.binaryType = 'arraybuffer';
     this.socket = socket;
 
     socket.onmessage = (event) => this.handleMessage(event);
-    socket.onclose = () => {
-      if (this.socket === socket) {
-        this.connectionState.set('closed');
-      }
-    };
-    socket.onerror = () => {
-      if (this.socket === socket) {
-        this.connectionState.set('closed');
-      }
-    };
+    socket.onclose = () => this.handleSocketDown(socket, code);
+    socket.onerror = () => this.handleSocketDown(socket, code);
   }
 
-  leave(): void {
-    this.reset();
+  private handleSocketDown(socket: WebSocket, code: string): void {
+    if (this.socket !== socket) {
+      return; // a newer socket already superseded this one
+    }
+    if (this.intentionalClose || this.fatalError()) {
+      return; // spec Stage 6 doesn't reconnect after an intentional leave or a room-gone/full rejection
+    }
+    this.connectionState.set('reconnecting');
+    const delay = RECONNECT_DELAYS_MS[Math.min(this.reconnectAttempt, RECONNECT_DELAYS_MS.length - 1)];
+    this.reconnectAttempt++;
+    this.reconnectTimer = setTimeout(() => {
+      if (!this.intentionalClose) {
+        this.openSocket(code);
+      }
+    }, delay);
   }
 
   sendText(text: string): void {
@@ -191,6 +213,7 @@ export class RoomService {
   }
 
   private handleWelcome(message: WelcomeMessage): void {
+    this.reconnectAttempt = 0;
     this.you.set(message.you);
     this.participants.set(message.participants);
     this.expiresAt.set(Date.parse(message.expiresAt));
@@ -257,6 +280,7 @@ export class RoomService {
   }
 
   private reset(): void {
+    clearTimeout(this.reconnectTimer);
     this.socket?.close();
     this.socket = null;
     this.code.set(null);

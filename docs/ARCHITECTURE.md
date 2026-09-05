@@ -27,10 +27,12 @@ product/behavior spec; this file tracks the *as-built* system.
 quickdot/
   backend/        Spring Boot app (modular monolith, packages by feature)
     room/         room registry, lifecycle, TTL              [Stage 1]
-    ws/           websocket handler, session tracking, protocol [Stage 2]
-    relay/        text + file relay, chunking                [Stage 3-4]
-    safety/       rate limiting, size/type/MIME enforcement, origin/CORS [Stage 4/6]
-    web/          health check, config, security headers     [Stage 0]
+    ws/           websocket handler, session tracking, protocol,
+                  origin lock                                [Stage 2/6]
+    relay/        text + file relay, chunking, rate limits,
+                  size/type/MIME enforcement                 [Stage 3-4]
+    audit/        metadata-only logging (IP hashing, file digest) [Stage 6]
+    web/          health check, config, CORS, security headers [Stage 0/6]
   frontend/       Angular app (standalone components)
   docs/
     ARCHITECTURE.md   this file
@@ -177,6 +179,41 @@ quickdot/
   `webEnvironment = RANDOM_PORT` instead of the default mock environment
   (ADR-0009).
 
+### Hardening [Stage 6]
+
+- **Origin lock**: `ws.WebSocketConfig.setAllowedOrigins(...)` and
+  `web.AppConfig.addCorsMappings` both read one `app.allowed-origin`
+  property (ADR-0012) instead of the Stage 2/5 `*`/permissive stopgap.
+  Defaults to the Angular dev origin locally; `APP_ALLOWED_ORIGIN` overrides
+  it everywhere else (`docs/DEPLOY.md`). Verified end-to-end (not just unit
+  tests against the handler) in `ws.OriginCheckIntegrationTest`, since the
+  check runs in Spring's handshake interceptor before the handler runs.
+- **Security headers**: `web.SecurityHeadersFilter`, a plain
+  `jakarta.servlet.Filter` `@Component`, sets `Content-Security-Policy`
+  (`default-src 'none'`, since this backend never serves HTML — only JSON
+  and WebSocket upgrades), `Strict-Transport-Security`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`,
+  `X-Frame-Options: DENY`, and a minimal `Permissions-Policy` on every
+  response (spec §6).
+- **Metadata audit log** (`audit` package, ADR-0013): `audit.AuditLog` logs
+  `room_created`, `participant_joined`, and `file_relayed` events (timestamp,
+  room code, hashed IP, and for files, a SHA-256 + size + MIME type) through
+  a dedicated `ca.amartian.quickdot.audit` SLF4J logger. `audit.IpHasher`
+  salts and truncates IPs (`app.ip-hash-salt` / `APP_IP_HASH_SALT`) so the
+  raw address is never written to disk. `logback-spring.xml` routes that
+  logger to its own rolling file (`logs/audit.log`, daily rotation,
+  30-day `maxHistory`, matching spec §6's stated retention) separate from
+  general application logs. `relay.FileTransfer` carries a running
+  `MessageDigest` (updated per chunk, finalized once at `file-end`) so the
+  file hash never requires buffering the file itself.
+- **Not yet done**: Sentry (blocked on an account/DSN — see
+  `docs/KNOWLEDGE.md`) and load-testing against a real deployed instance
+  (blocked on Stage 0's deferred cloud deploy). The rate-limit/size/type
+  rejection paths this line item mostly means are already covered by
+  `QuickDotWebSocketHandlerTest` and `OriginCheckIntegrationTest`'s
+  hostile-input cases, but that's correctness testing, not a substitute for
+  tuning defaults under real concurrent load.
+
 ## Frontend
 
 - Angular (standalone components, no NgModules), SCSS, `ssr=false` (static
@@ -219,6 +256,22 @@ quickdot/
 - Global design tokens (the prototype's `:root` CSS variables, Google Fonts)
   live in `src/styles.scss` / `src/index.html`; per-page styles are ported
   into each component's `.scss` faithfully from `quickdot.html`.
+
+### Reconnect UI [Stage 6]
+
+- `core/room.service.ts` tracks `intentionalClose` and a reconnect-attempt
+  counter (ADR-0014). An unrequested socket close/error — not `leave()`, not
+  a fatal `ROOM_NOT_FOUND`/`ROOM_FULL` rejection — sets `connectionState` to
+  `'reconnecting'` and retries the same room code with capped exponential
+  backoff (1s/2s/4s/8s, then holding at 8s), without clearing `items` or
+  `participants` the way a fresh `connect()` does.
+- `room/room.html` shows a blinking "Reconnecting…" label in place of the
+  presence line while `connectionState() === 'reconnecting'`, and disables
+  the composer's Send/Attach buttons whenever `connectionState() !== 'open'`
+  so a message typed mid-reconnect isn't silently swallowed.
+- No separate "give up" state: retries continue until either the connection
+  recovers or the room's TTL elapses (the Stage 5 TTL-expiry effect already
+  navigates away at that point).
 
 ## Deploy
 

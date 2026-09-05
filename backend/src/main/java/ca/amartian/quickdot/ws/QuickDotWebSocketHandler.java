@@ -1,5 +1,7 @@
 package ca.amartian.quickdot.ws;
 
+import ca.amartian.quickdot.audit.AuditLog;
+import ca.amartian.quickdot.audit.IpHasher;
 import ca.amartian.quickdot.relay.BlockedExtensions;
 import ca.amartian.quickdot.relay.ChunkFrame;
 import ca.amartian.quickdot.relay.FileTransfer;
@@ -54,6 +56,8 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
     private final BlockedExtensions blockedExtensions;
     private final MimeSniffer mimeSniffer;
     private final ObjectMapper objectMapper;
+    private final AuditLog auditLog;
+    private final IpHasher ipHasher;
     private final int maxItemsPerRoom;
     private final long maxFileSizeBytes;
 
@@ -67,6 +71,8 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
             BlockedExtensions blockedExtensions,
             MimeSniffer mimeSniffer,
             ObjectMapper objectMapper,
+            AuditLog auditLog,
+            IpHasher ipHasher,
             @Value("${room.max-items:200}") int maxItemsPerRoom,
             @Value("${relay.file.max-size-bytes:26214400}") long maxFileSizeBytes) {
         this.roomRegistry = roomRegistry;
@@ -78,6 +84,8 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
         this.blockedExtensions = blockedExtensions;
         this.mimeSniffer = mimeSniffer;
         this.objectMapper = objectMapper;
+        this.auditLog = auditLog;
+        this.ipHasher = ipHasher;
         this.maxItemsPerRoom = maxItemsPerRoom;
         this.maxFileSizeBytes = maxFileSizeBytes;
     }
@@ -103,6 +111,7 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
 
         session.getAttributes().put(ATTR_PARTICIPANT_ID, participant.id());
         sessionRegistry.register(participant.id(), session);
+        auditLog.participantJoined(roomCode, ipHasher.hash(participant.ip()));
 
         Room room = roomOpt.get();
         List<ParticipantView> others = room.participants().stream()
@@ -210,11 +219,11 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
         if (sender == null) {
             return;
         }
-        fileTransferRegistry.start(new FileTransfer(transferId, room.code(), participantId, name, declaredSize));
+        String mime = node.path("mime").asString("");
+        fileTransferRegistry.start(new FileTransfer(transferId, room.code(), participantId, name, mime, declaredSize));
 
         broadcastToOthers(room, participantId, FileStartMessage.of(
-                new ParticipantView(sender.id(), sender.name()), transferId, name,
-                node.path("mime").asString(""), declaredSize));
+                new ParticipantView(sender.id(), sender.name()), transferId, name, mime, declaredSize));
     }
 
     private void handleFileChunk(WebSocketSession session, String participantId, ByteBuffer raw) {
@@ -238,7 +247,7 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
             return;
         }
 
-        long totalAfterThisChunk = transfer.addBytes(frame.payload().length);
+        long totalAfterThisChunk = transfer.addBytes(frame.payload());
         if (totalAfterThisChunk > transfer.declaredSize() || totalAfterThisChunk > maxFileSizeBytes) {
             abortTransfer(session, transfer, "FILE_TOO_LARGE", "File exceeds the 25 MB limit");
             return;
@@ -271,6 +280,8 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
         roomRegistry.findActiveRoom(transfer.roomCode()).ifPresent(room -> {
             Participant sender = findParticipant(room, participantId);
             if (sender != null) {
+                auditLog.fileRelayed(room.code(), ipHasher.hash(sender.ip()),
+                        transfer.digestHex(), transfer.bytesReceived(), transfer.mime());
                 broadcastToOthers(room, participantId,
                         FileEndMessage.of(new ParticipantView(sender.id(), sender.name()), transferId));
             }

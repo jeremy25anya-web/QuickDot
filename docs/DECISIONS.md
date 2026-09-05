@@ -289,3 +289,104 @@ segment.
 rejoins as a brand-new participant (new id, new fun name) rather than
 resuming a prior session — consistent with spec §1's "no accounts, no
 identity" and with the protocol (spec §5) having no session-resume concept.
+
+---
+
+## ADR-0012: One `app.allowed-origin` property drives both the WebSocket origin check and CORS
+
+**Date:** 2026-09-04
+**Stage:** 6
+
+**Context:** Stage 6 requires locking the WebSocket handshake's `Origin`
+check and the `/api/**` CORS policy to the exact production frontend origin
+(spec §6), replacing the `*`/permissive settings ADR-0010 and Stage 2's
+`WebSocketConfig` used as a stopgap. Both checks need to agree on the same
+origin, and that origin differs by environment (Angular dev server locally,
+the real Cloudflare Pages domain in production).
+
+**Decision:** A single `app.allowed-origin` property (`WebSocketConfig` and
+`AppConfig` both read it) defaults to `http://localhost:4200` in
+`application.properties` and is overridden via the `APP_ALLOWED_ORIGIN` env
+var everywhere else — Fly.io sets it via `flyctl secrets set` (see
+`docs/DEPLOY.md`). `setAllowedOrigins(...)` (exact match) replaces
+`setAllowedOriginPatterns("*")`.
+
+**Consequences:** Local `mvnw spring-boot:run` + `ng serve` keeps working
+with zero setup, matching `CLAUDE.md`'s emphasis on testing the golden path
+locally. Forgetting to set `APP_ALLOWED_ORIGIN` in a real deployment means
+the deployed frontend can't connect at all (fails loud, not open) — verified
+end-to-end in `OriginCheckIntegrationTest` (a real embedded server + a real
+WebSocket client, since the origin check runs in Spring's handshake
+interceptor before the handler ever sees the connection — this couldn't be
+covered by the existing mocked-session unit tests in
+`QuickDotWebSocketHandlerTest`).
+
+---
+
+## ADR-0013: Metadata audit log — hashed IP, running file digest, own rolling appender
+
+**Date:** 2026-09-04
+**Stage:** 6
+
+**Context:** Spec §6 requires metadata-only logging for abuse response:
+"timestamp, room code, a hashed/truncated IP, file hash + size + type,"
+never message/file content, with 30-day retention then purge. Nothing about
+this can reuse Spring's default request logging (it would either log too
+little to be useful for abuse response, or risk logging content/full IPs).
+
+**Decision:** A dedicated `audit.AuditLog` component logs three metadata
+events (`room_created`, `participant_joined`, `file_relayed`) through an
+SLF4J logger named `ca.amartian.quickdot.audit`, routed by
+`logback-spring.xml` to its own `RollingFileAppender`
+(`logs/audit.log`, daily rotation, `maxHistory=30`, `additivity="false"` so
+it never also lands in the general application log). IPs are hashed via
+`audit.IpHasher` — SHA-256(salt + ip), truncated to 12 hex chars — using a
+salt from `app.ip-hash-salt` (env `APP_IP_HASH_SALT` in every non-dev
+environment; must stay stable across deploys so repeat-offender correlation
+within the retention window keeps working). File hashes come from a running
+`MessageDigest` now carried on `relay.FileTransfer`, updated per chunk
+alongside the existing byte counter (`FileTransfer.addBytes` takes the chunk
+bytes, not just a length, precisely so it can feed the digest) and finalized
+once at `file-end` — no additional buffering, since a digest is O(1) memory
+regardless of file size.
+
+**Consequences:** `FileTransfer`'s constructor and `addBytes` signature
+changed (now takes the declared MIME type and the chunk bytes respectively)
+— both call sites were internal to Stage 4's code plus its tests, updated
+alongside this. The raw (non-hashed) IP still lives in `room.Participant` in
+memory for the life of a connection (Stage 1 design, unchanged) — only the
+audit *log* ever sees the hashed form; the raw address is never written to
+disk anywhere.
+
+---
+
+## ADR-0014: Reconnect UI retries with capped backoff, keeps the feed, no give-up state
+
+**Date:** 2026-09-04
+**Stage:** 6
+
+**Context:** Spec §7 asks for "WebSocket disconnect/reconnect handling with
+a visible 'reconnecting…' state." An unexpected socket drop (backend
+restart, network blip) previously left `RoomService.connectionState` stuck
+at `'closed'` with no recovery — the Stage 5 UI had no way to distinguish
+"the room is gone" (server rejected the connection: `ROOM_NOT_FOUND`/
+`ROOM_FULL`) from "the connection dropped but the room might still be
+there."
+
+**Decision:** `RoomService` now tracks `intentionalClose` and a reconnect
+attempt counter. An unrequested socket close/error (i.e., not from `leave()`
+and not following a fatal server error) sets `connectionState` to
+`'reconnecting'` and retries the same room code after a capped
+exponential backoff (1s/2s/4s/8s, then holding at 8s). A successful
+reconnect does **not** clear `items`/`participants` the way a fresh
+`connect()` does — only the socket is replaced, so the visible chat history
+survives a blip. There's no separate "give up" state or retry limit;
+retries continue until either the connection recovers or the room's TTL
+elapses (the existing TTL-expiry effect already navigates away at that
+point), which avoids inventing a second termination condition.
+
+**Consequences:** A reconnect always gets a new participant id/name from the
+server — consistent with ADR-0011 (no session-resume concept in spec §5).
+The composer's Send/Attach buttons are disabled whenever
+`connectionState() !== 'open'` so a message typed during a reconnect gap
+isn't silently dropped by `sendText`/`sendFile`'s existing `isOpen()` guard.

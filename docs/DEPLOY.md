@@ -83,6 +83,20 @@ Then, from `backend/`:
 `quickdot-api` or pick your own — if you change it, update `app =` in
 `backend/fly.toml` to match.
 
+Set the two secrets Stage 6 hardening requires before the first real deploy
+(both default to dev-only values locally — see `application.properties` —
+and must not ship with those defaults in production):
+```
+! flyctl secrets set APP_ALLOWED_ORIGIN=https://quickdot.amartian.ca
+! flyctl secrets set APP_IP_HASH_SALT=$(openssl rand -hex 32)
+```
+`APP_ALLOWED_ORIGIN` locks the WebSocket origin check and CORS (spec §6) to
+the real frontend origin instead of the local Angular dev server.
+`APP_IP_HASH_SALT` salts the hashed IPs in the metadata audit log
+(`logs/audit.log`, 30-day retention) — generate it once and keep it stable
+across deploys, since changing it breaks correlation of repeat offenders
+across the retention window; don't reuse the dev default.
+
 Deploy:
 ```
 ! flyctl deploy --remote-only

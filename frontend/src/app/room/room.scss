@@ -102,6 +102,11 @@
       color: var(--signal);
       font-weight: 600;
     }
+
+    .reconnecting {
+      color: var(--ink-soft);
+      animation: blink 1.1s steps(2) infinite;
+    }
   }
 }
 

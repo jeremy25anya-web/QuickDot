@@ -8,6 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ca.amartian.quickdot.audit.AuditLog;
+import ca.amartian.quickdot.audit.IpHasher;
 import ca.amartian.quickdot.relay.BlockedExtensions;
 import ca.amartian.quickdot.relay.ChunkFrame;
 import ca.amartian.quickdot.relay.FileTransferRegistry;
@@ -57,7 +59,8 @@ class QuickDotWebSocketHandlerTest {
             FileTransferRegistry fileTransferRegistry, int maxItemsPerRoom, long maxFileSizeBytes) {
         return new QuickDotWebSocketHandler(roomRegistry, new FunNameGenerator(), sessionRegistry, textRateLimiter,
                 uploadRateLimiter, fileTransferRegistry, new BlockedExtensions(BLOCKED_EXTENSIONS_CSV),
-                new MimeSniffer(), new ObjectMapper(), maxItemsPerRoom, maxFileSizeBytes);
+                new MimeSniffer(), new ObjectMapper(), new AuditLog(), new IpHasher("test-salt"),
+                maxItemsPerRoom, maxFileSizeBytes);
     }
 
     private WebSocketSession mockSession(String roomCode) {

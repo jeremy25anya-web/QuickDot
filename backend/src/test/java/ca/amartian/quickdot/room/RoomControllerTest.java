@@ -3,6 +3,8 @@ package ca.amartian.quickdot.room;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import ca.amartian.quickdot.audit.AuditLog;
+import ca.amartian.quickdot.audit.IpHasher;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,12 @@ class RoomControllerTest {
 
     @MockitoBean
     private RoomRegistry roomRegistry;
+
+    @MockitoBean
+    private AuditLog auditLog;
+
+    @MockitoBean
+    private IpHasher ipHasher;
 
     @Test
     void createRoomReturnsCodeAndExpiry() {

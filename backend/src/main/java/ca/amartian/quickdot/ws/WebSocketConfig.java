@@ -13,20 +13,23 @@ import org.springframework.web.socket.server.standard.ServletServerContainerFact
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final QuickDotWebSocketHandler handler;
+    private final String allowedOrigin;
 
-    public WebSocketConfig(QuickDotWebSocketHandler handler) {
+    public WebSocketConfig(QuickDotWebSocketHandler handler,
+            @Value("${app.allowed-origin}") String allowedOrigin) {
         this.handler = handler;
+        this.allowedOrigin = allowedOrigin;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // TODO(Stage 6): lock allowed origins to the exact production origin
-        // (spec §6). Permissive for now because local dev and the Cloudflare
-        // Tunnel both put the Angular dev server on a different origin than
-        // the backend.
+        // spec §6: reject handshakes whose Origin isn't the frontend's exact
+        // origin. app.allowed-origin defaults to the Angular dev server
+        // (application.properties) and is overridden via APP_ALLOWED_ORIGIN
+        // in every other environment (see docs/DEPLOY.md).
         registry.addHandler(handler, "/ws/*")
                 .addInterceptors(new RoomCodeHandshakeInterceptor())
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins(allowedOrigin);
     }
 
     /** Sized to fit one 256 KB file-chunk frame plus framing overhead (spec §5). */

@@ -1,6 +1,7 @@
 package ca.amartian.quickdot.web;
 
 import java.time.Clock;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -11,6 +12,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableScheduling
 public class AppConfig implements WebMvcConfigurer {
 
+    private final String allowedOrigin;
+
+    public AppConfig(@Value("${app.allowed-origin}") String allowedOrigin) {
+        this.allowedOrigin = allowedOrigin;
+    }
+
     @Bean
     public Clock clock() {
         return Clock.systemUTC();
@@ -18,11 +25,8 @@ public class AppConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // TODO(Stage 6): lock this to the exact production frontend origin
-        // (spec §6). Permissive for now for the same reason as
-        // ws.WebSocketConfig's allowed origin patterns — local dev and the
-        // Cloudflare Tunnel put the Angular dev server on a different origin
-        // than the backend.
-        registry.addMapping("/api/**").allowedOriginPatterns("*").allowedMethods("GET", "POST");
+        // spec §6: CORS locked to the frontend's exact origin, same
+        // app.allowed-origin property as ws.WebSocketConfig.
+        registry.addMapping("/api/**").allowedOrigins(allowedOrigin).allowedMethods("GET", "POST");
     }
 }

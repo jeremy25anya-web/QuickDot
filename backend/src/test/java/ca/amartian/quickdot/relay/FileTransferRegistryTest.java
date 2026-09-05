@@ -10,7 +10,7 @@ class FileTransferRegistryTest {
 
     @Test
     void startedTransferIsFindable() {
-        FileTransfer transfer = new FileTransfer("t1", "ROOM01", "p1", "photo.png", 1000);
+        FileTransfer transfer = new FileTransfer("t1", "ROOM01", "p1", "photo.png", "image/png", 1000);
 
         assertThat(registry.start(transfer)).isTrue();
         assertThat(registry.find("t1")).contains(transfer);
@@ -18,16 +18,16 @@ class FileTransferRegistryTest {
 
     @Test
     void startingTheSameTransferIdTwiceFails() {
-        registry.start(new FileTransfer("t1", "ROOM01", "p1", "photo.png", 1000));
+        registry.start(new FileTransfer("t1", "ROOM01", "p1", "photo.png", "image/png", 1000));
 
-        boolean second = registry.start(new FileTransfer("t1", "ROOM01", "p2", "other.png", 500));
+        boolean second = registry.start(new FileTransfer("t1", "ROOM01", "p2", "other.png", "image/png", 500));
 
         assertThat(second).isFalse();
     }
 
     @Test
     void removedTransferIsGone() {
-        registry.start(new FileTransfer("t1", "ROOM01", "p1", "photo.png", 1000));
+        registry.start(new FileTransfer("t1", "ROOM01", "p1", "photo.png", "image/png", 1000));
 
         registry.remove("t1");
 
@@ -36,7 +36,7 @@ class FileTransferRegistryTest {
 
     @Test
     void hasActiveUploadReflectsSenderState() {
-        registry.start(new FileTransfer("t1", "ROOM01", "p1", "photo.png", 1000));
+        registry.start(new FileTransfer("t1", "ROOM01", "p1", "photo.png", "image/png", 1000));
 
         assertThat(registry.hasActiveUpload("p1")).isTrue();
         assertThat(registry.hasActiveUpload("p2")).isFalse();
