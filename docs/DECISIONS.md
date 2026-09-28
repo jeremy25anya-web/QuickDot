@@ -518,3 +518,28 @@ TTL. Normal use (create, then join immediately) isn't affected. Users behind
 one NAT (an office, campus or carrier NAT) share the limits. Audit-log hashes
 written before this deploy are all the proxy's and can't be used to tell
 clients apart.
+
+## ADR-0019: Close moves to the room header; file names truncate on their own line
+
+**Date:** 2026-09-28
+**Stage:** 5 (UI follow-up)
+
+**Context:** On mobile, a long unbroken file name ran past the file chip and
+was clipped by the screen edge instead of truncating. The chip's flex chain
+had no `min-width: 0`, so it was held at the name's full width. The name and
+size were also inline spans, and `text-overflow: ellipsis` has no effect on
+an inline element. Separately, the prototype's bare "Close" button shared the
+composer row, where it looked stranded and didn't say what it closed.
+
+**Decision:** Add `min-width: 0` at each level (item, chip, text column) and
+make the name and size block-level lines: the name truncates on line one,
+"size · tap to save" sits on line two. Move Close out of the composer into
+the header next to the countdown, labelled "Close room" (tooltip: "Close room
+and wipe everything"). This is a deliberate departure from `quickdot.html`'s
+layout: the header holds room-level actions (code, clock, close), and the
+bottom bar is only for sending (attach, input, send).
+
+**Consequences:** The composer is a single group. Close is further from the
+thumb on mobile, which is acceptable for a destructive, infrequent action.
+The pill's tap target is extended to ~44px with a pseudo-element, ahead of
+the Stage 7 accessibility pass.

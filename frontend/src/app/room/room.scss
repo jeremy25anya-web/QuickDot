@@ -208,6 +208,7 @@
 .item {
   position: relative;
   max-width: 82%;
+  min-width: 0;
   padding: 11px 14px;
   border-radius: var(--radius);
   font-size: 15px;
@@ -330,10 +331,16 @@
   margin-top: 2px;
 }
 
+// A long unbroken file name must truncate inside the bubble, not push past
+// it. Every level of the flex chain needs min-width: 0 (flex items default
+// to min-width: auto = their content's width), and the name/size lines must
+// be block-level, since text-overflow does nothing on an inline span.
 .file {
   display: flex;
   align-items: center;
   gap: 11px;
+  min-width: 0;
+  max-width: 100%;
   text-decoration: none;
   border: none !important;
 
@@ -353,7 +360,15 @@
   }
 
   .fmeta {
+    flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fname,
+  .fsize {
+    display: block;
   }
 
   .fname {
@@ -466,16 +481,33 @@
   }
 }
 
+/* room-level controls: countdown + close, grouped in the header */
+.roomctl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .close {
+  position: relative;
   color: var(--ink-faint);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: color .18s, background .18s;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: color .18s, border-color .18s, background .18s;
+
+  // Extends the tap target to ~44px without making the pill bigger.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
+  }
 
   &:hover {
     color: var(--signal);
+    border-color: var(--signal-dim);
     background: var(--paper-raised);
   }
 }
