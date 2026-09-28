@@ -452,3 +452,34 @@ for this: with SPA fallback on, unknown paths render the Angular app, so the
 404 should be an Angular route (the existing `**` wildcard) rather than a
 static `404.html`. Spec §2's intent (static frontend on Cloudflare's edge)
 is met; only the product name differs.
+
+## ADR-0017: Sentry scrubs in-process; exception messages never leave
+
+**Date:** 2026-09-28
+**Stage:** 6
+
+**Context:** Spec §3/§7 want Sentry on both halves, "errors only, no PII",
+and the non-negotiables forbid ever logging content. Default Sentry SDKs
+attach request URLs, headers, user IPs, console output and DOM-click
+selectors, and exception messages can quote their input (a browser's
+`JSON.parse` error echoes the text; parser libraries do the same). Room codes
+appear in URLs (`/r/CODE`, `/ws/CODE`) and in Spring's WebSocket error log
+line, and a code is a live credential for its room for up to 30 minutes.
+
+**Decision:** Scrub in our own code before anything is sent, rather than
+relying on Sentry's server-side scrubbing (which is on too, as a backstop).
+Backend `monitoring.SentryScrubber` and frontend `core/sentry.ts` both:
+drop request and user data; replace every exception message with
+`[redacted]` (type + stack trace are kept, which is usually enough to find
+the bug); rewrite room-code path segments to `:code` in messages and
+breadcrumbs. No tracing, replay or session pings. Frontend console and
+DOM-click breadcrumbs are removed (click breadcrumbs capture attributes like
+`title`, which can be a file name). Backend log events come only from ERROR
+logs; the audit logger is excluded by `additivity="false"`. An empty DSN
+disables the SDK, so dev and tests send nothing.
+
+**Consequences:** Some errors will be harder to diagnose without their
+messages; if that bites, add targeted, content-free context (error codes,
+sizes) at the throw site rather than loosening the scrubber. Our own log
+messages still reach Sentry verbatim (after code redaction), so the existing
+"never log content" rule is what keeps them clean.

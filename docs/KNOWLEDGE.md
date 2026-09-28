@@ -22,16 +22,34 @@ a record of what was asked and answered.
       `legal/TERMS-OF-SERVICE.md` already exist as solid drafts but explicitly
       flag themselves as "not legal advice" — the spec's Definition of Done
       requires both be lawyer-reviewed before launch.
-- [ ] **Sentry account/DSN** not yet set up — needed for Stage 6/7 wiring
-      (frontend + backend, errors only, no PII).
+- [ ] **Sentry DSNs needed.** Code is wired and scrubbed (ADR-0017) but
+      inert until Jeremy creates the account + two projects (`quickdot-api`,
+      `quickdot-web`; guide in `docs/DEPLOY.md` §6) and supplies the DSNs:
+      backend → `flyctl secrets set SENTRY_DSN=...`, frontend →
+      `environment.ts` `sentryDsn`. Then trigger one test error per side to
+      confirm events arrive scrubbed.
+- [ ] **§6 gap: per-IP room-creation limits not implemented** (found
+      2026-09-28 by `tools/loadtest/loadtest.py --creation-limits`: 21/21
+      creations from one IP succeeded). Spec requires ≤20 rooms per IP per
+      hour and ≤5 concurrent rooms per IP, enforced server-side
+      (`RoomController` currently has no check). Blocks Stage 6 sign-off.
+- [ ] **Client IP is probably the Fly proxy, not the user.**
+      `RoomController` uses `request.getRemoteAddr()` and the WS handler uses
+      `session.getRemoteAddress()`, with no forwarded-header handling
+      (`server.forward-headers-strategy` unset). Behind Fly's proxy these
+      most likely return the proxy's address, so audit-log IP hashes are the
+      same for everyone and any per-IP limit would throttle all users as
+      one. Needs fixing before the per-IP limits above; fix options are
+      Fly's `Fly-Client-IP` header or `server.forward-headers-strategy`.
+      Unverified in prod (needs a look at `audit.log` via `flyctl ssh`).
 - [ ] **Stage 6 (Hardening) is partially done, not signed off.** Origin lock
       (WS + CORS), security headers, metadata-only audit logging with 30-day
       retention, and the frontend reconnect UI are all implemented and
       tested (see ADR-0012 through ADR-0014) — including an end-to-end
       hostile-input pass (`OriginCheckIntegrationTest` +
       `QuickDotWebSocketHandlerTest`'s existing oversized/blocked-type/flood
-      cases). What's still open and blocked on human/deploy action: Sentry
-      (above) and load-testing the §6 limits against a real deployed
+      cases). What's still open: Sentry DSNs (above), the per-IP creation
+      limits and client-IP fix (above), and load-testing the §6 limits against a real deployed
       instance under concurrent traffic (now unblocked — Stage 0 is live as
       of 2026-09-28). Per `CLAUDE.md`'s stage
       discipline, don't mark Stage 6 done until both land.

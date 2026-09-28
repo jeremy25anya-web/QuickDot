@@ -215,3 +215,30 @@ Expect `HTTP/2 200`.
 Once both checks above return 200, tell Claude — Stage 0's "done when" is
 met and the build can move to Stage 1. Until then, treat Stage 0 as
 in-progress (tracked in `docs/KNOWLEDGE.md`).
+
+## 6. Sentry (errors only)
+
+1. Sign up at sentry.io (free Developer plan). Pick US or EU data storage —
+   permanent.
+2. Create two projects: **Spring Boot** → `quickdot-api`, **Angular** →
+   `quickdot-web`. Skip Sentry's setup wizard; the code is already wired
+   (ADR-0017).
+3. Organization Settings → Security & Privacy: enable **Data Scrubber** and
+   **Prevent Storing of IP Addresses** (backstop to our own scrubbing).
+4. Copy each project's DSN (Project → Settings → Client Keys). Then:
+   ```
+   ! flyctl secrets set SENTRY_DSN=<quickdot-api DSN> -a quickdot-api
+   ```
+   and put the `quickdot-web` DSN in `frontend/src/environments/environment.ts`
+   (`sentryDsn`). The frontend DSN is public by design.
+
+## 7. Load / hostile-input test
+
+```
+pip install websockets
+python tools/loadtest/loadtest.py                    # against prod
+python tools/loadtest/loadtest.py --creation-limits  # + per-IP room limits
+```
+Watch memory in the Fly dashboard (Monitoring → the machine's metrics)
+while the load part runs. `--creation-limits` uses up your IP's hourly
+room-creation quota once that limit exists.

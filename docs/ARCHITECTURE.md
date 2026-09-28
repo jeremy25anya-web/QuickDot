@@ -206,13 +206,24 @@ quickdot/
   general application logs. `relay.FileTransfer` carries a running
   `MessageDigest` (updated per chunk, finalized once at `file-end`) so the
   file hash never requires buffering the file itself.
-- **Not yet done**: Sentry (blocked on an account/DSN — see
-  `docs/KNOWLEDGE.md`) and load-testing against a real deployed instance
-  (blocked on Stage 0's deferred cloud deploy). The rate-limit/size/type
-  rejection paths this line item mostly means are already covered by
-  `QuickDotWebSocketHandlerTest` and `OriginCheckIntegrationTest`'s
-  hostile-input cases, but that's correctness testing, not a substitute for
-  tuning defaults under real concurrent load.
+- **Error monitoring (Sentry, ADR-0017)**: backend uses
+  `sentry-spring-boot-4-starter` + `sentry-logback` (ERROR logs → events,
+  WARN → breadcrumbs; the audit logger never reaches Sentry because of
+  `additivity="false"`). `monitoring.SentryScrubber` is the before-send and
+  before-breadcrumb hook: drops request/user/server name, replaces every
+  exception message with `[redacted]`, and rewrites room-code paths
+  (`/ws/`, `/r/`, `/api/rooms/`) to `:code`. Frontend mirrors this in
+  `core/sentry.ts` (`@sentry/angular`, Angular `ErrorHandler`), with console,
+  DOM-click and session integrations removed. Both sides are disabled when
+  the DSN is empty (`SENTRY_DSN` Fly secret / `environment.sentryDsn`).
+- **Load/hostile-input test**: `tools/loadtest/loadtest.py` attacks each
+  §6 limit from a real client and streams full-size files through N rooms
+  while sampling `/healthz`. Local run 2026-09-28: all implemented limits
+  pass; 3 × 25 MB concurrent transfers complete with `/healthz` ≤ 96 ms.
+- **Known gaps (see `docs/KNOWLEDGE.md`)**: per-IP room-creation limits
+  (≤5 concurrent, ≤20/hour) are not implemented, and client IPs are read
+  from the socket peer, which behind Fly's proxy is most likely the proxy,
+  not the user (unverified in prod).
 
 ## Frontend
 

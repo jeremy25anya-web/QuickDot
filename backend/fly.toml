@@ -22,6 +22,8 @@ primary_region = "yyz" # Toronto — North America bandwidth pricing tier
   # Cap the heap at 70% of the container's 512MB (~358MB), leaving headroom
   # for metaspace, thread stacks and direct buffers so the VM doesn't OOM.
   JAVA_TOOL_OPTIONS = "-XX:MaxRAMPercentage=70"
+  # SENTRY_DSN is a Fly secret; this only labels events.
+  SENTRY_ENVIRONMENT = "production"
 
 [http_service]
   internal_port = 8080
