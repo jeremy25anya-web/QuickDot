@@ -22,7 +22,8 @@ a record of what was asked and answered.
       meantime, development is proceeding locally on Stages 1-5, optionally
       exposed via Cloudflare Tunnel for cross-device testing (see
       `docs/DEPLOY.md` §1). Once a payment method is added, resume at
-      `docs/DEPLOY.md` §2: `fly launch` + `fly deploy` for the backend,
+      `docs/DEPLOY.md` §2: `flyctl apps create` + `flyctl deploy --ha=false`
+      for the backend (NOT `fly launch` — see ADR-0015's one-machine cost lock),
       connect the repo to Cloudflare Pages for the frontend, add both CNAME
       records. Stage 0 is not "done" per spec until both subdomains serve
       HTTPS and `/healthz` returns 200 in prod.

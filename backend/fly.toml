@@ -1,27 +1,39 @@
 # Fly.io app config for the QuickDot backend.
-# Deploy with: fly launch --copy-config --no-deploy   (first time, to create the app)
-#              fly deploy                              (subsequent deploys)
 #
-# `app` below is a placeholder — replace with the real app name you choose
-# in `fly launch`, and update DNS / frontend config to match.
+# COST LOCK (ADR-0015): exactly ONE always-on shared-cpu-1x / 512MB machine,
+# no autoscaling, no volumes, no dedicated IPv4. See docs/DEPLOY.md §2.
+#
+# First time only, create the empty app:  flyctl apps create quickdot-api
+# Every deploy, using this committed file: flyctl deploy --ha=false --remote-only
+# Do NOT run `fly launch` — it can regenerate this config, and a default
+# first deploy provisions TWO machines for HA, doubling the bill.
+#
+# Note: fly.toml has no "max machines" key. Machine count is whatever exists
+# in the app; `--ha=false` makes the first deploy create one, and
+# `flyctl scale count 1` pins it back if a second ever appears.
 app = "quickdot-api"
-primary_region = "yyz" # Toronto — closest Fly.io region to Ontario; change if needed
+primary_region = "yyz" # Toronto — North America bandwidth pricing tier
 
 [build]
 
 [env]
-  # PORT is set by Fly automatically; the app reads it via ${PORT:8080}.
+  # Fly does NOT inject PORT. Spring listens on server.port=${PORT:8080},
+  # i.e. 8080 by default, which must match [http_service] internal_port.
+  # Cap the heap at 70% of the container's 512MB (~358MB), leaving headroom
+  # for metaspace, thread stacks and direct buffers so the VM doesn't OOM.
+  JAVA_TOOL_OPTIONS = "-XX:MaxRAMPercentage=70"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # Always-on: never scale to zero, so there is no cold-start on first visit.
+  # Always-on, fixed size: never stop the machine (no cold start) and never
+  # let the proxy start extra machines on demand.
   auto_stop_machines = false
-  auto_start_machines = true
+  auto_start_machines = false
   min_machines_running = 1
 
   [[http_service.checks]]
-    grace_period = "10s"
+    grace_period = "45s" # JVM boot on a throttled shared-cpu-1x takes 20-30s+
     interval = "15s"
     method = "GET"
     timeout = "5s"
@@ -30,3 +42,5 @@ primary_region = "yyz" # Toronto — closest Fly.io region to Ontario; change if
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"
+
+# Intentionally no [mounts] section — no volumes (nothing is persisted, spec §6).

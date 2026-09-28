@@ -390,3 +390,37 @@ server — consistent with ADR-0011 (no session-resume concept in spec §5).
 The composer's Send/Attach buttons are disabled whenever
 `connectionState() !== 'open'` so a message typed during a reconnect gap
 isn't silently dropped by `sendText`/`sendFile`'s existing `isOpen()` guard.
+
+## ADR-0015: Fly.io backend locked to one always-on shared-cpu-1x/512MB machine
+
+**Date:** 2026-09-27
+**Stage:** 0 (deploy)
+
+**Context:** QuickDot is a portfolio tool with low, bursty traffic. Fly.io
+bills per machine-second, per GB of egress (by region tier), and for extras
+like dedicated IPv4 and volumes. A default `fly launch` provisions two
+machines for HA, and autostart/autoscaling settings can spin up more — both
+make the monthly bill unpredictable for no real benefit at this scale.
+Spec §2 also already assumes a single instance (all room state is in memory,
+so a second machine would split rooms anyway).
+
+**Decision:** `backend/fly.toml` pins the backend to a single always-on
+machine: `[[vm]] size = "shared-cpu-1x", memory = "512mb"`,
+`auto_stop_machines = false`, `auto_start_machines = false`,
+`min_machines_running = 1`, region `yyz` (North America egress tier). No
+`[mounts]` (no volumes — nothing is persisted) and no dedicated IPv4 (the
+included shared IPv4 + IPv6 suffice). The heap is capped with
+`JAVA_TOOL_OPTIONS = "-XX:MaxRAMPercentage=70"` so the JVM sizes itself to
+the 512MB container instead of OOMing. fly.toml has no max-machine-count
+key, so the one-machine cap is enforced procedurally: the app is created
+with `flyctl apps create` (never `fly launch`), deployed with
+`flyctl deploy --ha=false`, and verified with `flyctl machines list`
+(docs/DEPLOY.md §2).
+
+**Consequences:** Target cost ~$4-7 USD/month, predictable. No redundancy:
+a host failure or deploy means brief downtime and drops all live rooms —
+acceptable given rooms are ephemeral by design. With `auto_start_machines =
+false`, if Fly stops the machine for host maintenance the proxy won't wake
+it; the machine's restart policy still covers process crashes. Scaling up
+later is a deliberate config change plus a new ADR, not something that can
+happen by accident.

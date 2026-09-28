@@ -73,15 +73,27 @@ Install flyctl if you don't have it:
 winget install --id Fly-io.flyctl -e
 ```
 
-Then, from `backend/`:
+> **⚠ Do NOT run `fly launch` / `flyctl launch`.** The committed
+> `backend/fly.toml` is the config — `launch` regenerates it, and a
+> launch-created app's first deploy provisions **two** machines for high
+> availability, doubling the cost. This app is deliberately locked to a
+> single always-on `shared-cpu-1x`/512MB machine (ADR-0015).
+
+Log in from a **separate, regular terminal** — `flyctl auth login` needs an
+interactive TTY and fails under Claude Code's `!` prefix ("requires an
+interactive terminal"). The token it saves is picked up by later `!`
+commands; confirm with:
 ```
-! flyctl auth login
-! flyctl launch --copy-config --no-deploy
+flyctl auth login            # in your own PowerShell window, not via `!`
+! flyctl auth whoami
 ```
-`--copy-config` uses the committed `backend/fly.toml` as-is (don't let
-`launch` regenerate it). When prompted for an app name, either accept
-`quickdot-api` or pick your own — if you change it, update `app =` in
-`backend/fly.toml` to match.
+
+Then, from `backend/`, create the empty app (no machines, no config
+changes) under the name in `fly.toml`:
+```
+! flyctl apps create quickdot-api
+```
+If you pick a different name, update `app =` in `backend/fly.toml` to match.
 
 Set the two secrets Stage 6 hardening requires before the first real deploy
 (both default to dev-only values locally — see `application.properties` —
@@ -97,12 +109,23 @@ the real frontend origin instead of the local Angular dev server.
 across deploys, since changing it breaks correlation of repeat offenders
 across the retention window; don't reuse the dev default.
 
-Deploy:
+Deploy using the existing committed `fly.toml`:
 ```
-! flyctl deploy --remote-only
+! flyctl deploy --ha=false --remote-only
 ```
-`--remote-only` builds the Docker image on Fly's remote builder, so you don't
-need Docker installed locally.
+`--ha=false` stops the first deploy from creating a second standby machine
+(Fly's default for apps with an HTTP service). `--remote-only` builds the
+Docker image on Fly's remote builder, so you don't need Docker installed
+locally.
+
+Confirm the cost lock held:
+```
+! flyctl machines list      # expect exactly ONE machine, region yyz, shared-cpu-1x 512MB
+! flyctl ips list           # expect v6 + "shared" v4 only — no dedicated v4 ($2/mo)
+! flyctl volumes list       # expect none
+```
+If a second machine ever shows up, `flyctl scale count 1` removes it. If a
+dedicated IPv4 was allocated, `flyctl ips release <address>`.
 
 Verify:
 ```
