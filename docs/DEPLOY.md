@@ -124,6 +124,14 @@ Confirm the cost lock held:
 ! flyctl ips list           # expect v6 + "shared" v4 only — no dedicated v4 ($2/mo)
 ! flyctl volumes list       # expect none
 ```
+If the first deploy prints `Failed to provision IP addresses` (seen
+2026-09-28 — the machine starts but `*.fly.dev` is unreachable), allocate
+the free addresses by hand — never plain `allocate-v4`, which is a paid
+dedicated IPv4:
+```
+! flyctl ips allocate-v6 -a quickdot-api
+! flyctl ips allocate-v4 --shared -a quickdot-api
+```
 If a second machine ever shows up, `flyctl scale count 1` removes it. If a
 dedicated IPv4 was allocated, `flyctl ips release <address>`.
 
