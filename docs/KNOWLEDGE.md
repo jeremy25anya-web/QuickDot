@@ -12,21 +12,6 @@ a record of what was asked and answered.
 
 ## Open
 
-- [ ] **Stage 0 cloud deploy = DEFERRED (blocked on Fly.io payment method,
-      expected to resolve in ~1-2 weeks as of 2026-08-17).** Scaffolding
-      (Dockerfile, fly.toml, Angular shell, CI) is done and builds locally;
-      `flyctl launch` failed with "requested machine count exceeds
-      organization limit," which traces back to no card on file for the Fly
-      org. Fly.io remains the production target (see ADR-0004, SPEC.md
-      unchanged) — this is a timing gap, not a target change. In the
-      meantime, development is proceeding locally on Stages 1-5, optionally
-      exposed via Cloudflare Tunnel for cross-device testing (see
-      `docs/DEPLOY.md` §1). Once a payment method is added, resume at
-      `docs/DEPLOY.md` §2: `flyctl apps create` + `flyctl deploy --ha=false`
-      for the backend (NOT `fly launch` — see ADR-0015's one-machine cost lock),
-      connect the repo to Cloudflare Pages for the frontend, add both CNAME
-      records. Stage 0 is not "done" per spec until both subdomains serve
-      HTTPS and `/healthz` returns 200 in prod.
 - [ ] **Placeholders to fill before launch** (spec, final section):
       `{{CONTACT_EMAIL}}`, `{{ABUSE_EMAIL}}`, `{{EFFECTIVE_DATE}}`,
       `{{BUSINESS_STRUCTURE}}` (sole proprietorship vs incorporated), and the
@@ -47,12 +32,20 @@ a record of what was asked and answered.
       `QuickDotWebSocketHandlerTest`'s existing oversized/blocked-type/flood
       cases). What's still open and blocked on human/deploy action: Sentry
       (above) and load-testing the §6 limits against a real deployed
-      instance under concurrent traffic (Stage 0's cloud deploy is itself
-      deferred — nothing to load-test against yet). Per `CLAUDE.md`'s stage
+      instance under concurrent traffic (now unblocked — Stage 0 is live as
+      of 2026-09-28). Per `CLAUDE.md`'s stage
       discipline, don't mark Stage 6 done until both land.
 
 ## Resolved
 
+- [x] Stage 0 cloud deploy — resolved 2026-09-28 (was deferred on a Fly.io
+      payment method, ADR-0004). Backend on Fly (`quickdot-api`, one
+      machine, ADR-0015), frontend on Cloudflare Workers static assets
+      (ADR-0016). Verified: `https://api.quickdot.amartian.ca/healthz` →
+      200 `{"status":"ok"}`; `https://quickdot.amartian.ca/` and
+      `/r/ABCD` → 200 serving the app. `api.quickdot` is now a DNS-only
+      CNAME to Fly, so the local-dev Cloudflare Tunnel route no longer
+      applies to that hostname.
 - [x] Spring Boot 3.x vs 4.x — resolved 2026-08-15, see ADR-0001.
 - [x] Local toolchain (Java 21) — resolved 2026-08-15, Temurin 21 installed via
       winget; Maven not installed globally, using the committed Maven wrapper

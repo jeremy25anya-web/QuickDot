@@ -424,3 +424,31 @@ false`, if Fly stops the machine for host maintenance the proxy won't wake
 it; the machine's restart policy still covers process crashes. Scaling up
 later is a deliberate config change plus a new ADR, not something that can
 happen by accident.
+
+## ADR-0016: Frontend hosted on Cloudflare Workers static assets, not Pages
+
+**Date:** 2026-09-28
+**Stage:** 0
+
+**Context:** Spec §2 names Cloudflare Pages for the frontend. Connecting
+the repo through Cloudflare's current dashboard Git flow created a Worker
+(`quickdot.jeremy25anya.workers.dev`) rather than a Pages project, which
+served an empty 404 on every path because it had no assets configuration.
+Cloudflare now directs new static sites to Workers static assets and ships
+new features there; Pages remains supported.
+
+**Decision:** Keep the Worker. `frontend/wrangler.jsonc` points it at
+`./dist/frontend/browser` with `not_found_handling:
+"single-page-application"` so `/r/:code` deep links resolve to
+`index.html`. Build settings: root `frontend`, `npm run build`,
+`npx wrangler deploy`, `NODE_VERSION=24`. Custom domain
+`quickdot.amartian.ca` is attached to the Worker.
+
+**Consequences:** Functionally equivalent to Pages for this app — same
+edge network, $0 (static asset requests are free and unmetered), same
+custom-domain/TLS handling. SPA fallback is explicit config instead of
+Pages' implicit behavior. Stage 7's custom 404 page will need to account
+for this: with SPA fallback on, unknown paths render the Angular app, so the
+404 should be an Angular route (the existing `**` wildcard) rather than a
+static `404.html`. Spec §2's intent (static frontend on Cloudflare's edge)
+is met; only the product name differs.

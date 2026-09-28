@@ -12,7 +12,7 @@ product/behavior spec; this file tracks the *as-built* system.
  ┌───────────────────────────┐        ┌──────────────────────────────┐
  │  Frontend (Angular)       │  wss   │  Backend (Spring Boot, Java)  │
  │  static build             │───────▶│  long-running process         │
- │  Cloudflare Pages         │        │  Fly.io (always-on machine)   │
+ │  Cloudflare Workers       │        │  Fly.io (always-on machine)   │
  │  quickdot.amartian.ca     │        │  api.quickdot.amartian.ca     │
  └───────────────────────────┘        └──────────────────────────────┘
 ```
@@ -217,12 +217,13 @@ quickdot/
 ## Frontend
 
 - Angular (standalone components, no NgModules), SCSS, `ssr=false` (static
-  build only — this is a Cloudflare Pages static deploy, no Angular
+  build only — this is a Cloudflare Workers static-assets deploy, no Angular
   Universal/SSR server). No `zone.js` — the app is zoneless, so all reactive
   state is Angular signals (WebSocket callbacks and the TTL interval write to
   signals directly; there's no zone patching to fall back on).
-- Build output: `frontend/dist/frontend/browser` — this is the directory
-  Cloudflare Pages should serve.
+- Build output: `frontend/dist/frontend/browser` — served by Cloudflare
+  Workers static assets per `frontend/wrangler.jsonc`, with SPA fallback so
+  `/r/:code` deep links return `index.html` (ADR-0016).
 
 ### Room UI [Stage 5]
 
@@ -277,8 +278,12 @@ quickdot/
 
 - Backend: Docker multi-stage build (`backend/Dockerfile`) → Fly.io
   (`backend/fly.toml`), always-on single machine, Toronto region (ADR-0003).
-- Frontend: Cloudflare Pages, connected directly to the git repo (build
-  command `npm run build` in `frontend/`, output directory
-  `dist/frontend/browser`).
+- Backend live at `api.quickdot.amartian.ca` (DNS-only CNAME →
+  `quickdot-api.fly.dev`, Fly-issued cert); one machine, cost-locked per
+  ADR-0015.
+- Frontend: Cloudflare Workers static assets (not Pages — ADR-0016),
+  Git-connected Worker `quickdot` (root `frontend/`, build `npm run build`,
+  deploy `npx wrangler deploy`), live at `quickdot.amartian.ca` and
+  `quickdot.jeremy25anya.workers.dev`.
 - See `docs/DEPLOY.md` for the exact one-time setup steps (account-linked,
   must be run by the account owner).
