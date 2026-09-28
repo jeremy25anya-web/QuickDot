@@ -1,0 +1,12 @@
+// Cloudflare Workers static-assets config for the Angular frontend.
+// Serves the `ng build` output; no Worker script, assets only.
+{
+  "name": "quickdot",
+  "compatibility_date": "2026-09-28",
+  "assets": {
+    "directory": "./dist/frontend/browser",
+    // Room links (/r/:code) are client-side routes — serve index.html for
+    // any path that isn't a real file instead of a 404.
+    "not_found_handling": "single-page-application"
+  }
+}

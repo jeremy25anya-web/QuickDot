@@ -188,6 +188,13 @@ Git**, select this repo, and configure:
 | Root directory | `frontend` |
 | Build output directory | `dist/frontend/browser` |
 
+> **If Cloudflare created a Worker instead** (the URL ends in
+> `.workers.dev`, not `.pages.dev` — the dashboard's default Git flow now
+> does this): that's fine, `frontend/wrangler.jsonc` configures it. Use
+> Root directory `frontend`, Build command `npm run build`, Deploy command
+> `npx wrangler deploy`, build variable `NODE_VERSION=24`. Without
+> `wrangler.jsonc` the Worker serves nothing and every URL is an empty 404.
+
 Build output directory is relative to Root directory — with Root =
 `frontend`, that's `dist/frontend/browser`, not
 `frontend/dist/frontend/browser`. (`frontend` is the Angular project name in
