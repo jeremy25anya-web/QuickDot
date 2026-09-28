@@ -218,8 +218,10 @@ quickdot/
   the DSN is empty (`SENTRY_DSN` Fly secret / `environment.sentryDsn`).
 - **Load/hostile-input test**: `tools/loadtest/loadtest.py` attacks each
   §6 limit from a real client and streams full-size files through N rooms
-  while sampling `/healthz`. Local run 2026-09-28: all implemented limits
-  pass; 3 × 25 MB concurrent transfers complete with `/healthz` ≤ 96 ms.
+  while sampling `/healthz`. Prod run 2026-09-28: all 10 §6 checks pass;
+  3 × 25 MB concurrent transfers at 5.1-5.9 MB/s each, `/healthz` median
+  83 ms / max 553 ms, no OOM on the 512 MB machine. Uses certifi's CA
+  bundle when installed (this dev machine's Windows store fails LE chains).
 - **Client IP + per-IP room limits (ADR-0018)**: `web.ClientIpResolver`
   returns Fly's `Fly-Client-IP` header when `app.trust-fly-client-ip` is on
   (only in fly.toml), else the socket peer. Used by `RoomController` and,

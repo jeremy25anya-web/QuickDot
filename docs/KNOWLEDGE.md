@@ -33,11 +33,17 @@ a record of what was asked and answered.
       tested (see ADR-0012 through ADR-0014) — including an end-to-end
       hostile-input pass (`OriginCheckIntegrationTest` +
       `QuickDotWebSocketHandlerTest`'s existing oversized/blocked-type/flood
-      cases). What's still open: confirming Sentry events arrive (above),
-      and load-testing the §6 limits against a real deployed
-      instance under concurrent traffic (now unblocked — Stage 0 is live as
-      of 2026-09-28). Per `CLAUDE.md`'s stage
-      discipline, don't mark Stage 6 done until both land.
+      cases). Load test run against prod 2026-09-28 (backend deploy
+      `01M3MZR3VVEPECT7DXV3WG7MXZ`): all 10 §6 checks pass, including
+      per-IP room limits with a spoofed `Fly-Client-IP` header ignored (so
+      Fly overwrites client-supplied values); 3 concurrent 25 MB transfers
+      complete at 5.1-5.9 MB/s each, `/healthz` 17/17 OK (median 83 ms, max
+      553 ms), no OOM or restart events on the 512 MB machine. What's still
+      open: confirming Sentry events arrive scrubbed (above), and checking
+      `audit.log` on the machine shows distinct IP hashes and no content
+      (`flyctl ssh console -a quickdot-api -C "tail /app/logs/audit.log"`).
+      Per `CLAUDE.md`'s stage discipline, don't mark Stage 6 done until
+      both land.
 
 ## Resolved
 
@@ -45,8 +51,8 @@ a record of what was asked and answered.
       2026-09-28 (ADR-0018). `web.ClientIpResolver` reads `Fly-Client-IP`
       when `APP_TRUST_FLY_CLIENT_IP=true` (fly.toml); `room.RoomCreationLimiter`
       enforces ≤5 open rooms and ≤20 creations/hour per hashed IP, 429
-      `ROOM_LIMIT`. Load test passes locally, including a spoofed-header
-      check; still to confirm against prod after deploy. Audit-log IP hashes
+      `ROOM_LIMIT`. Load test passes against prod (2026-09-28), including
+      the spoofed-header check. Audit-log IP hashes
       written before this deploy are all the Fly proxy's and can't be used
       to tell clients apart.
 

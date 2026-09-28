@@ -25,6 +25,7 @@ import argparse
 import asyncio
 import json
 import os
+import ssl
 import struct
 import sys
 import time
@@ -34,6 +35,12 @@ import uuid
 
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
+
+try:  # Prefer certifi's CA bundle: some Windows cert stores hold an expired
+    import certifi  # cross-signed root that makes OpenSSL reject valid chains.
+    SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    SSL_CTX = ssl.create_default_context()
 
 CHUNK = 256 * 1024
 MAX_FILE = 25 * 1024 * 1024
@@ -52,13 +59,14 @@ class Ctx:
         headers = {"Content-Type": "application/json", "Origin": self.origin, **(extra_headers or {})}
         req = urllib.request.Request(f"{self.base}/api/rooms", data=b"{}", method="POST", headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=15, context=SSL_CTX) as resp:
                 return resp.status, json.load(resp)["code"]
         except urllib.error.HTTPError as e:
             return e.code, None
 
     async def join(self, code: str, origin: str | None = None):
-        ws = await connect(f"{self.ws_base}/ws/{code}", origin=origin or self.origin, max_size=2 * CHUNK)
+        tls = SSL_CTX if self.ws_base.startswith("wss://") else None
+        ws = await connect(f"{self.ws_base}/ws/{code}", origin=origin or self.origin, max_size=2 * CHUNK, ssl=tls)
         first = json.loads(await asyncio.wait_for(ws.recv(), 10))
         return ws, first
 
@@ -225,7 +233,7 @@ async def health_sampler(ctx, stop: asyncio.Event, samples: list):
     while not stop.is_set():
         t = time.monotonic()
         try:
-            status = await asyncio.to_thread(lambda: urllib.request.urlopen(f"{ctx.base}/healthz", timeout=10).status)
+            status = await asyncio.to_thread(lambda: urllib.request.urlopen(f"{ctx.base}/healthz", timeout=10, context=SSL_CTX).status)
         except Exception as e:  # noqa: BLE001 — any failure is a data point
             status = type(e).__name__
         samples.append((status, time.monotonic() - t))
