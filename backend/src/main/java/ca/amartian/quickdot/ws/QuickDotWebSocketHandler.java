@@ -355,6 +355,10 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     private String clientIp(WebSocketSession session) {
+        // Set by RoomCodeHandshakeInterceptor via ClientIpResolver (Fly-aware).
+        if (session.getAttributes().get(RoomCodeHandshakeInterceptor.ATTR_CLIENT_IP) instanceof String ip) {
+            return ip;
+        }
         InetSocketAddress address = session.getRemoteAddress();
         return address != null ? address.getAddress().getHostAddress() : "unknown";
     }

@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { RoomApiService } from '../core/room-api.service';
@@ -31,8 +32,10 @@ export class Landing {
     try {
       const { code } = await this.roomApi.createRoom();
       this.router.navigate(['/r', code]);
-    } catch {
-      this.toast.show("Couldn't create a room. Try again.", true);
+    } catch (err) {
+      // 429 = per-IP room limit (spec §6); the server's message says which one.
+      const limitMessage = err instanceof HttpErrorResponse && err.status === 429 ? err.error?.message : null;
+      this.toast.show(limitMessage ?? "Couldn't create a room. Try again.", true);
     } finally {
       this.creating.set(false);
     }

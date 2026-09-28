@@ -483,3 +483,38 @@ messages; if that bites, add targeted, content-free context (error codes,
 sizes) at the throw site rather than loosening the scrubber. Our own log
 messages still reach Sentry verbatim (after code redaction), so the existing
 "never log content" rule is what keeps them clean.
+
+## ADR-0018: Client IP from Fly-Client-IP (opt-in); per-IP room limits in the controller path
+
+**Date:** 2026-09-28
+**Stage:** 6
+
+**Context:** The load test showed spec §6's per-IP room-creation limits
+(≤20/hour, ≤5 concurrent) were never implemented. Separately, client IPs
+came from the socket peer with no forwarded-header handling. Behind Fly's
+proxy that's most likely the proxy's own address, so every audit-log IP hash
+would be the same and any per-IP limit would throttle all users as one.
+
+**Decision:** `web.ClientIpResolver` uses Fly's `Fly-Client-IP` header,
+which Fly's proxy sets to the address it accepted the connection from. We
+chose it over `server.forward-headers-strategy` + `X-Forwarded-For` because
+it's a single value with no proxy-chain parsing. The header is trusted only
+when `APP_TRUST_FLY_CLIENT_IP=true`, set in `fly.toml`. Everywhere else it's
+ignored, so a client can't spoof it to dodge limits. The load test's
+`--creation-limits` check sends a random spoofed header on every request, so
+running it against production also shows whether Fly overwrites
+client-supplied values.
+
+`room.RoomCreationLimiter` holds the create path under one lock: reject if
+the hashed IP has ≥5 unexpired rooms (`Room.creatorKey`), or ≥20 creations
+in a sliding hour. Otherwise it records the creation and creates the room.
+Rejections are HTTP 429 `{code: "ROOM_LIMIT", message}`. Keys are hashed
+IPs, never raw addresses.
+
+**Consequences:** "Concurrent" counts rooms until they expire or are swept.
+A room that's never joined isn't reclaimed by the empty-room grace (that
+starts when the last participant *leaves*), so it counts for its full 30-min
+TTL. Normal use (create, then join immediately) isn't affected. Users behind
+one NAT (an office, campus or carrier NAT) share the limits. Audit-log hashes
+written before this deploy are all the proxy's and can't be used to tell
+clients apart.

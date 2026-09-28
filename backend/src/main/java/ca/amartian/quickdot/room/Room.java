@@ -16,6 +16,8 @@ public final class Room {
     private final String code;
     private final Instant createdAt;
     private final Instant expiresAt;
+    /** Hashed creator IP, for the per-IP concurrent-room limit; null if not tracked. */
+    private final String creatorKey;
     private final Map<String, Participant> participants = new ConcurrentHashMap<>();
     private final AtomicInteger itemCount = new AtomicInteger();
 
@@ -23,9 +25,14 @@ public final class Room {
     private volatile Instant emptiedAt;
 
     public Room(String code, Instant createdAt, Duration ttl) {
+        this(code, createdAt, ttl, null);
+    }
+
+    public Room(String code, Instant createdAt, Duration ttl, String creatorKey) {
         this.code = code;
         this.createdAt = createdAt;
         this.expiresAt = createdAt.plus(ttl);
+        this.creatorKey = creatorKey;
     }
 
     public String code() {
@@ -38,6 +45,10 @@ public final class Room {
 
     public Instant expiresAt() {
         return expiresAt;
+    }
+
+    public String creatorKey() {
+        return creatorKey;
     }
 
     public boolean isExpired(Instant now) {

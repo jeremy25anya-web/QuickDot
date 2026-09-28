@@ -15,8 +15,9 @@ Usage (from the repo root, Python 3.11+ with `pip install websockets`):
 Notes:
   * All traffic comes from one IP. The per-IP room limits (≤5 concurrent,
     ≤20/hour) therefore cap how many rooms one run may use: the checks use 2
-    rooms and the load part defaults to 3. `--creation-limits` deliberately
-    exhausts the hourly creation quota for your IP.
+    rooms and the load part defaults to 3, i.e. 5 creations per run, so about
+    4 runs per hour, ~1 min apart (left rooms are reclaimed after 30 s).
+    `--creation-limits` deliberately exhausts your IP's hourly quota.
   * Payloads are random bytes, never real content. Nothing is written to disk.
 """
 
@@ -47,9 +48,9 @@ class Ctx:
         self.ws_base = self.base.replace("https://", "wss://").replace("http://", "ws://")
         self.origin = origin
 
-    def create_room(self) -> tuple[int, str | None]:
-        req = urllib.request.Request(f"{self.base}/api/rooms", data=b"{}", method="POST",
-                                     headers={"Content-Type": "application/json", "Origin": self.origin})
+    def create_room(self, extra_headers: dict | None = None) -> tuple[int, str | None]:
+        headers = {"Content-Type": "application/json", "Origin": self.origin, **(extra_headers or {})}
+        req = urllib.request.Request(f"{self.base}/api/rooms", data=b"{}", method="POST", headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 return resp.status, json.load(resp)["code"]
@@ -202,11 +203,19 @@ async def check_upload_rate(ctx, room):
 
 
 def check_creation_limits(ctx):
-    """≤5 concurrent rooms per IP and ≤20 creations per IP per hour."""
-    results = [ctx.create_room()[0] for _ in range(21)]
+    """≤5 concurrent rooms per IP and ≤20 creations per IP per hour.
+
+    Every request also carries a random, spoofed Fly-Client-IP header. If the
+    server (or Fly's proxy) trusted a client-supplied value, each request
+    would look like a new IP and no limit would ever trigger.
+    """
+    results = []
+    for _ in range(21):
+        spoofed = f"198.51.100.{uuid.uuid4().int % 254 + 1}"
+        results.append(ctx.create_room({"Fly-Client-IP": spoofed})[0])
     first_reject = next((i + 1 for i, s in enumerate(results) if s != 200), None)
     ok = first_reject is not None and first_reject <= 6
-    return ok, f"statuses: {results}; first rejection at request #{first_reject}"
+    return ok, f"statuses: {results}; first rejection at request #{first_reject} (spoofed Fly-Client-IP ignored={ok})"
 
 
 # ---------------------------------------------------------------- load
@@ -303,7 +312,10 @@ async def run_load(ctx, rooms: int, file_mb: int):
     failures = [s for s, _ in samples if s != 200]
     if failures:
         print(f"  /healthz failures: {failures}")
-    return all("error" not in r and r["complete"] for r in results) and not failures
+    if len(codes) < rooms:
+        print(f"  only {len(codes)}/{rooms} load rooms could be created — counts as a failure")
+    return (len(codes) == rooms and all("error" not in r and r["complete"] for r in results)
+            and not failures)
 
 
 # ---------------------------------------------------------------- main
@@ -347,14 +359,15 @@ async def main():
         passed &= ok
         print(f"  [{'PASS' if ok else 'FAIL'}] {name} — {detail}")
 
-    if args.creation_limits:
-        ok, detail = check_creation_limits(ctx)
-        passed &= ok
-        print(f"  [{'PASS' if ok else 'FAIL'}] room creation ≤5 concurrent / ≤20 per hour per IP — {detail}")
-
     if not args.skip_load:
         print(f"\nLoad: {args.load_rooms} rooms × {args.file_mb} MB file, 2 participants each")
         passed &= await run_load(ctx, args.load_rooms, args.file_mb)
+
+    # Last: this deliberately exhausts the per-IP room quota.
+    if args.creation_limits:
+        ok, detail = check_creation_limits(ctx)
+        passed &= ok
+        print(f"\n  [{'PASS' if ok else 'FAIL'}] room creation ≤5 concurrent / ≤20 per hour per IP — {detail}")
 
     print("\nRESULT:", "all passed" if passed else "FAILURES above")
     sys.exit(0 if passed else 1)

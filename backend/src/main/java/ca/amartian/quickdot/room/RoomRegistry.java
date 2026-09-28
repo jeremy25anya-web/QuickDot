@@ -38,13 +38,25 @@ public class RoomRegistry {
     }
 
     public Room createRoom() {
+        return createRoom(null);
+    }
+
+    public Room createRoom(String creatorKey) {
         Room room;
         String code;
         do {
             code = codeGenerator.generate();
-            room = new Room(code, clock.instant(), ttl);
+            room = new Room(code, clock.instant(), ttl, creatorKey);
         } while (rooms.putIfAbsent(code, room) != null);
         return room;
+    }
+
+    /** Rooms created by {@code creatorKey} that haven't expired or been swept. */
+    public long activeRoomsCreatedBy(String creatorKey) {
+        Instant now = clock.instant();
+        return rooms.values().stream()
+                .filter(room -> creatorKey.equals(room.creatorKey()) && !room.isExpired(now))
+                .count();
     }
 
     public Optional<Room> findActiveRoom(String code) {

@@ -24,6 +24,8 @@ primary_region = "yyz" # Toronto — North America bandwidth pricing tier
   JAVA_TOOL_OPTIONS = "-XX:MaxRAMPercentage=70"
   # SENTRY_DSN is a Fly secret; this only labels events.
   SENTRY_ENVIRONMENT = "production"
+  # Fly's proxy sets Fly-Client-IP; trust it for the real client address.
+  APP_TRUST_FLY_CLIENT_IP = "true"
 
 [http_service]
   internal_port = 8080

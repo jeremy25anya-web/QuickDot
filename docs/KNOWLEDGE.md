@@ -22,39 +22,33 @@ a record of what was asked and answered.
       `legal/TERMS-OF-SERVICE.md` already exist as solid drafts but explicitly
       flag themselves as "not legal advice" — the spec's Definition of Done
       requires both be lawyer-reviewed before launch.
-- [ ] **Sentry DSNs needed.** Code is wired and scrubbed (ADR-0017) but
-      inert until Jeremy creates the account + two projects (`quickdot-api`,
-      `quickdot-web`; guide in `docs/DEPLOY.md` §6) and supplies the DSNs:
-      backend → `flyctl secrets set SENTRY_DSN=...`, frontend →
-      `environment.ts` `sentryDsn`. Then trigger one test error per side to
-      confirm events arrive scrubbed.
-- [ ] **§6 gap: per-IP room-creation limits not implemented** (found
-      2026-09-28 by `tools/loadtest/loadtest.py --creation-limits`: 21/21
-      creations from one IP succeeded). Spec requires ≤20 rooms per IP per
-      hour and ≤5 concurrent rooms per IP, enforced server-side
-      (`RoomController` currently has no check). Blocks Stage 6 sign-off.
-- [ ] **Client IP is probably the Fly proxy, not the user.**
-      `RoomController` uses `request.getRemoteAddr()` and the WS handler uses
-      `session.getRemoteAddress()`, with no forwarded-header handling
-      (`server.forward-headers-strategy` unset). Behind Fly's proxy these
-      most likely return the proxy's address, so audit-log IP hashes are the
-      same for everyone and any per-IP limit would throttle all users as
-      one. Needs fixing before the per-IP limits above; fix options are
-      Fly's `Fly-Client-IP` header or `server.forward-headers-strategy`.
-      Unverified in prod (needs a look at `audit.log` via `flyctl ssh`).
+- [ ] **Confirm Sentry events arrive scrubbed.** DSNs supplied 2026-09-28:
+      backend `SENTRY_DSN` staged as a Fly secret (live on next deploy),
+      frontend DSN in `environment.ts`. After deploy, trigger one test error
+      per side and check in Sentry that no URL room codes, IPs or messages
+      came through.
 - [ ] **Stage 6 (Hardening) is partially done, not signed off.** Origin lock
       (WS + CORS), security headers, metadata-only audit logging with 30-day
       retention, and the frontend reconnect UI are all implemented and
       tested (see ADR-0012 through ADR-0014) — including an end-to-end
       hostile-input pass (`OriginCheckIntegrationTest` +
       `QuickDotWebSocketHandlerTest`'s existing oversized/blocked-type/flood
-      cases). What's still open: Sentry DSNs (above), the per-IP creation
-      limits and client-IP fix (above), and load-testing the §6 limits against a real deployed
+      cases). What's still open: confirming Sentry events arrive (above),
+      and load-testing the §6 limits against a real deployed
       instance under concurrent traffic (now unblocked — Stage 0 is live as
       of 2026-09-28). Per `CLAUDE.md`'s stage
       discipline, don't mark Stage 6 done until both land.
 
 ## Resolved
+
+- [x] **Per-IP room-creation limits + real client IP** — resolved
+      2026-09-28 (ADR-0018). `web.ClientIpResolver` reads `Fly-Client-IP`
+      when `APP_TRUST_FLY_CLIENT_IP=true` (fly.toml); `room.RoomCreationLimiter`
+      enforces ≤5 open rooms and ≤20 creations/hour per hashed IP, 429
+      `ROOM_LIMIT`. Load test passes locally, including a spoofed-header
+      check; still to confirm against prod after deploy. Audit-log IP hashes
+      written before this deploy are all the Fly proxy's and can't be used
+      to tell clients apart.
 
 - [x] Stage 0 cloud deploy — resolved 2026-09-28 (was deferred on a Fly.io
       payment method, ADR-0004). Backend on Fly (`quickdot-api`, one

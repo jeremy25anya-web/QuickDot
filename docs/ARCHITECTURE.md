@@ -220,10 +220,15 @@ quickdot/
   §6 limit from a real client and streams full-size files through N rooms
   while sampling `/healthz`. Local run 2026-09-28: all implemented limits
   pass; 3 × 25 MB concurrent transfers complete with `/healthz` ≤ 96 ms.
-- **Known gaps (see `docs/KNOWLEDGE.md`)**: per-IP room-creation limits
-  (≤5 concurrent, ≤20/hour) are not implemented, and client IPs are read
-  from the socket peer, which behind Fly's proxy is most likely the proxy,
-  not the user (unverified in prod).
+- **Client IP + per-IP room limits (ADR-0018)**: `web.ClientIpResolver`
+  returns Fly's `Fly-Client-IP` header when `app.trust-fly-client-ip` is on
+  (only in fly.toml), else the socket peer. Used by `RoomController` and,
+  via `RoomCodeHandshakeInterceptor`'s `clientIp` session attribute, by the
+  WebSocket handler, so audit hashes and limits see the real user.
+  `room.RoomCreationLimiter` wraps room creation: ≤5 unexpired rooms per
+  hashed IP (`Room.creatorKey`) and ≤20 creations per sliding hour, HTTP
+  429 `{code: "ROOM_LIMIT", message}` otherwise. Idle keys are evicted every
+  10 min. The landing page shows the server's message on a 429.
 
 ## Frontend
 

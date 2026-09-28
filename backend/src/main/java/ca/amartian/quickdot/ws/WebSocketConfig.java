@@ -1,5 +1,6 @@
 package ca.amartian.quickdot.ws;
 
+import ca.amartian.quickdot.web.ClientIpResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,11 +15,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final QuickDotWebSocketHandler handler;
     private final String allowedOrigin;
+    private final ClientIpResolver clientIpResolver;
 
     public WebSocketConfig(QuickDotWebSocketHandler handler,
-            @Value("${app.allowed-origin}") String allowedOrigin) {
+            @Value("${app.allowed-origin}") String allowedOrigin,
+            ClientIpResolver clientIpResolver) {
         this.handler = handler;
         this.allowedOrigin = allowedOrigin;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -28,7 +32,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         // (application.properties) and is overridden via APP_ALLOWED_ORIGIN
         // in every other environment (see docs/DEPLOY.md).
         registry.addHandler(handler, "/ws/*")
-                .addInterceptors(new RoomCodeHandshakeInterceptor())
+                .addInterceptors(new RoomCodeHandshakeInterceptor(clientIpResolver))
                 .setAllowedOrigins(allowedOrigin);
     }
 
