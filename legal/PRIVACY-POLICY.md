@@ -1,9 +1,9 @@
 # QuickDot Privacy Policy
 
-**Effective date:** {{EFFECTIVE_DATE}}
+**Effective date:** September 28, 2026
 
-QuickDot is a service operated by Jeremy Anyalewechi under the brand **Amartian**
-({{BUSINESS_STRUCTURE}}), based in Ontario, Canada. This policy explains what we
+QuickDot is a service operated by Jeremy Anyalewechi under the brand **Amartian Studios**,
+based in Ontario, Canada. This policy explains what we
 collect, why, and what we do not do. It is written to describe QuickDot honestly
 and specifically — not a generic template.
 
@@ -78,7 +78,7 @@ appropriate authorities, and may be disclosed as required by law.
 Under PIPEDA you may ask what personal information we hold about you, ask us to
 correct it, or complain to the Office of the Privacy Commissioner of Canada.
 Because we hold so little and it is short-lived, some requests may be limited by
-what still exists. Contact: **{{CONTACT_EMAIL}}**.
+what still exists. Contact: hello@amartian.ca
 
 ## Security
 We enforce transport encryption (HTTPS/WSS), server-side limits on file size and
@@ -91,5 +91,5 @@ We may update this policy. Material changes will be posted here with a new
 effective date.
 
 ## Contact
-Questions or privacy requests: **{{CONTACT_EMAIL}}**
-Abuse or takedown reports: **{{ABUSE_EMAIL}}**
+Questions or privacy requests: hello@amartian.ca
+Abuse or takedown reports: abuse@amartian.ca

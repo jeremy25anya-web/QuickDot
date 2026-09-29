@@ -22,18 +22,20 @@ a record of what was asked and answered.
       keyboard-only walkthrough, a screen-reader pass (NVDA on Windows is
       free), 200% zoom, target spacing on a phone.
 
-- [ ] **Placeholders to fill before launch** (spec, final section):
-      `{{CONTACT_EMAIL}}`, `{{ABUSE_EMAIL}}`, `{{EFFECTIVE_DATE}}`,
-      `{{BUSINESS_STRUCTURE}}` (sole proprietorship vs incorporated), and the
-      final Fly.io region (currently defaulted to `yyz`/Toronto — see
-      ADR-0003). These appear in `legal/PRIVACY-POLICY.md` and
-      `legal/TERMS-OF-SERVICE.md`.
 - [ ] **Legal review outstanding.** Both `legal/PRIVACY-POLICY.md` and
       `legal/TERMS-OF-SERVICE.md` already exist as solid drafts but explicitly
       flag themselves as "not legal advice" — the spec's Definition of Done
       requires both be lawyer-reviewed before launch.
 
 ## Resolved
+
+- [x] **Legal placeholders filled** — 2026-09-28. Operator brand
+      "Amartian Studios", contact hello@amartian.ca, abuse
+      abuse@amartian.ca, effective date September 28, 2026, in both
+      `legal/PRIVACY-POLICY.md` and `legal/TERMS-OF-SERVICE.md`. Region
+      settled as `yyz` (deployed, ADR-0015). The business-structure
+      placeholder was replaced by the brand name rather than "sole
+      proprietorship"/"incorporated"; worth confirming in the legal review.
 
 - [x] **Stage 6 (Hardening) signed off 2026-09-28.** Origin lock, CORS,
       security headers, reconnect UI, metadata-only audit log (ADR-0012 to

@@ -1,9 +1,9 @@
 # QuickDot Terms of Service
 
-**Effective date:** {{EFFECTIVE_DATE}}
+**Effective date:** September 28, 2026
 
 QuickDot ("the Service") is operated by Jeremy Anyalewechi under the brand
-**Amartian** ({{BUSINESS_STRUCTURE}}), Ontario, Canada ("we", "us"). By using
+**Amartian Studios**, Ontario, Canada ("we", "us"). By using
 QuickDot you agree to these Terms. If you do not agree, do not use the Service.
 
 > **Not legal advice.** This is an accurate-to-the-product starting point. Have
@@ -45,7 +45,7 @@ terminate access — including by IP address — to protect the Service and its
 users or to comply with the law.
 
 ## 6. Reporting abuse
-To report content or misuse, contact **{{ABUSE_EMAIL}}**. We act on valid
+To report content or misuse, contact **abuse@amartian.ca**. We act on valid
 reports promptly.
 
 ## 7. No warranty
@@ -73,4 +73,4 @@ We may update these Terms. Continued use after changes means you accept the
 updated Terms.
 
 ## 12. Contact
-**{{CONTACT_EMAIL}}** · Abuse: **{{ABUSE_EMAIL}}**
+**hello@amartian.ca** · Abuse: **abuse@amartian.ca**
