@@ -42,11 +42,11 @@ footer {
   padding: 22px;
   text-align: center;
   font-size: 12px;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   letter-spacing: .01em;
 
   .a {
-    color: var(--ink-soft);
+    color: var(--ink);
   }
 
   .fdot {
@@ -97,6 +97,6 @@ footer {
   animation: rise .3s cubic-bezier(.2, .8, .2, 1) both;
 
   &.err {
-    background: var(--signal);
+    background: var(--signal-text); // 6.2:1 with the light text; --signal is only 4.56
   }
 }

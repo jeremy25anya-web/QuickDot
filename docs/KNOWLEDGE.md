@@ -12,6 +12,16 @@ a record of what was asked and answered.
 
 ## Open
 
+- [ ] **Enable Cloudflare Web Analytics** (Stage 7). No code needed: the
+      site is served through Cloudflare, so the beacon can be injected
+      automatically. Cloudflare dashboard → Analytics & Logs → Web Analytics
+      → Add a site → `quickdot.amartian.ca` → automatic setup. It's
+      cookieless, which is what the Privacy Policy already promises. Tell
+      Claude once it's on so the Stage 7 checklist can be ticked.
+- [ ] **Human accessibility checks** (Stage 7, `ACCESSIBILITY.md` → Status):
+      keyboard-only walkthrough, a screen-reader pass (NVDA on Windows is
+      free), 200% zoom, target spacing on a phone.
+
 - [ ] **Placeholders to fill before launch** (spec, final section):
       `{{CONTACT_EMAIL}}`, `{{ABUSE_EMAIL}}`, `{{EFFECTIVE_DATE}}`,
       `{{BUSINESS_STRUCTURE}}` (sole proprietorship vs incorporated), and the

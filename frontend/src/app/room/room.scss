@@ -99,7 +99,7 @@
     font-weight: 500;
 
     b {
-      color: var(--signal);
+      color: var(--signal-text);
       font-weight: 600;
     }
 
@@ -160,7 +160,7 @@
   gap: 7px;
   font-family: 'JetBrains Mono';
   font-size: 12px;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 
   .rdot {
     width: 6px;
@@ -170,7 +170,7 @@
   }
 
   &.warn {
-    color: var(--signal);
+    color: var(--signal-text);
 
     .rdot {
       background: var(--signal);
@@ -192,7 +192,7 @@
 .empty {
   margin: auto;
   text-align: center;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-size: 14px;
   max-width: 26ch;
   line-height: 1.6;
@@ -258,6 +258,13 @@
   right: 6px;
   width: 22px;
   height: 22px;
+  // 44px tap target around the 22px glyph (ACCESSIBILITY.md).
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -11px;
+  }
+
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -305,7 +312,8 @@
     color: var(--ink);
     transition: background .12s;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background: var(--paper);
     }
   }
@@ -314,7 +322,7 @@
 .mename {
   font-family: 'JetBrains Mono';
   font-size: 11.5px;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   letter-spacing: .02em;
   margin-top: 5px;
 
@@ -349,7 +357,7 @@
     height: 38px;
     border-radius: 9px;
     background: var(--signal-dim);
-    color: var(--signal);
+    color: var(--signal-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -416,12 +424,18 @@
       border-color: var(--line-strong);
       box-shadow: var(--shadow);
     }
+
+    // The textarea drops its own outline, so the box carries the focus ring.
+    &:has(.ta:focus-visible) {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
   }
 }
 
 .attach {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: none;
   border-radius: 9px;
   display: flex;
@@ -454,13 +468,13 @@
   color: var(--ink);
 
   &::placeholder {
-    color: var(--ink-faint);
+    color: var(--ink-soft);
   }
 }
 
 .send {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: none;
   border-radius: 9px;
   background: var(--ink);
@@ -490,7 +504,7 @@
 
 .close {
   position: relative;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-size: 12px;
   font-weight: 500;
   padding: 6px 12px;
@@ -506,7 +520,7 @@
   }
 
   &:hover {
-    color: var(--signal);
+    color: var(--signal-text);
     border-color: var(--signal-dim);
     background: var(--paper-raised);
   }

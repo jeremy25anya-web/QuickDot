@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RoomService } from '../core/room.service';
 import { ToastService } from '../core/toast.service';
@@ -17,10 +17,18 @@ export class Room implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   protected readonly room = inject(RoomService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   protected readonly now = signal(Date.now());
   protected readonly menuFor = signal<string | null>(null);
   protected readonly draft = signal('');
+  /** Text for the screen-reader-only live region (joins, leaves, time warning). */
+  protected readonly announcement = signal('');
+
+  /** The ⋯ button that opened the current menu, so focus can return to it. */
+  private menuTrigger: HTMLElement | null = null;
+  private knownParticipants = new Map<string, string>();
+  private knownYouId: string | null = null;
 
   private tickHandle: ReturnType<typeof setInterval> | undefined;
 
@@ -39,11 +47,27 @@ export class Room implements OnInit, OnDestroy {
 
   protected readonly ttlWarn = computed(() => (this.ttlRemainingMs() ?? Infinity) < 120000);
 
+  /** The code spelled out so screen readers read it character by character. */
+  protected readonly codeLabel = computed(() => {
+    const code = this.room.code();
+    return code ? `Room code: ${code.split('').join(' ')}` : 'Room code loading';
+  });
+
   constructor() {
     effect(() => {
       if (this.ttlRemainingMs() === 0) {
         this.leaveWith("Room expired. Everything's gone.");
       }
+    });
+    effect(() => {
+      if (this.ttlWarn()) {
+        untracked(() => this.announce('Two minutes left. The room and everything in it will be deleted when time runs out.'));
+      }
+    });
+    effect(() => {
+      const you = this.room.you();
+      const list = this.room.participants();
+      untracked(() => this.announcePresenceChanges(you?.id ?? null, list));
     });
     effect(() => {
       const err = this.room.fatalError();
@@ -158,7 +182,70 @@ export class Room implements OnInit, OnDestroy {
 
   toggleMenu(item: FeedItem, event: Event): void {
     event.stopPropagation();
-    this.menuFor.set(this.menuFor() === item.id ? null : item.id);
+    if (this.menuFor() === item.id) {
+      this.closeMenu(false);
+      return;
+    }
+    this.menuTrigger = event.currentTarget as HTMLElement;
+    this.menuFor.set(item.id);
+    this.focusMenuItem(0);
+  }
+
+  openMenuFromKeyboard(item: FeedItem, event: Event): void {
+    event.preventDefault();
+    if (this.menuFor() !== item.id) {
+      this.toggleMenu(item, event);
+    } else {
+      this.focusMenuItem(0);
+    }
+  }
+
+  /** Arrow/Home/End move between items, Esc closes and returns focus, Tab closes. */
+  onMenuKeydown(event: KeyboardEvent): void {
+    const items = this.menuItems();
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.focusMenuItem((index + 1) % items.length);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.focusMenuItem((index - 1 + items.length) % items.length);
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.focusMenuItem(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        this.focusMenuItem(items.length - 1);
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.closeMenu(true);
+        break;
+      case 'Tab':
+        this.closeMenu(false);
+        break;
+    }
+  }
+
+  private menuItems(): HTMLElement[] {
+    return Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('.menu [role="menuitem"]'));
+  }
+
+  /** Waits a tick so the menu has rendered before focusing into it. */
+  private focusMenuItem(index: number): void {
+    setTimeout(() => this.menuItems()[index]?.focus());
+  }
+
+  private closeMenu(returnFocus: boolean): void {
+    this.menuFor.set(null);
+    if (returnFocus) {
+      this.menuTrigger?.focus();
+    }
+    this.menuTrigger = null;
   }
 
   menuActions(item: FeedItem): MenuAction[] {
@@ -177,7 +264,7 @@ export class Room implements OnInit, OnDestroy {
 
   runMenuAction(action: MenuAction): void {
     action.run();
-    this.menuFor.set(null);
+    this.closeMenu(true);
   }
 
   private downloadItem(item: FeedItem): void {
@@ -192,6 +279,35 @@ export class Room implements OnInit, OnDestroy {
 
   @HostListener('document:click')
   onDocumentClick(): void {
-    this.menuFor.set(null);
+    if (this.menuFor() !== null) {
+      this.closeMenu(false);
+    }
+  }
+
+  /**
+   * Announces who joined or left. A change of our own id means a fresh
+   * welcome (first connect or a reconnect), which resets the baseline
+   * silently rather than announcing everyone already in the room.
+   */
+  private announcePresenceChanges(youId: string | null, list: { id: string; name: string }[]): void {
+    const current = new Map(list.map((p) => [p.id, p.name]));
+    if (youId !== this.knownYouId) {
+      this.knownYouId = youId;
+      this.knownParticipants = current;
+      return;
+    }
+    const joined = list.filter((p) => !this.knownParticipants.has(p.id)).map((p) => `${p.name} joined`);
+    const left = [...this.knownParticipants].filter(([id]) => !current.has(id)).map(([, name]) => `${name} left`);
+    this.knownParticipants = current;
+    const message = [...joined, ...left].join('. ');
+    if (message) {
+      this.announce(message);
+    }
+  }
+
+  /** Clearing first makes screen readers re-read a repeated message. */
+  private announce(message: string): void {
+    this.announcement.set('');
+    setTimeout(() => this.announcement.set(message), 50);
   }
 }

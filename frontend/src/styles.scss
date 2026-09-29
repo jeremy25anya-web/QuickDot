@@ -7,11 +7,14 @@
   --paper-raised: #F7F8F5;
   --ink: #171C1A;
   --ink-soft: #5B635F;
-  --ink-faint: #9AA19C;
+  --ink-faint: #9AA19C; /* 2.3:1 on paper, decorative only (ACCESSIBILITY.md) */
   --line: #D8DCD6;
   --line-strong: #C4C9C2;
   --signal: #C6462F; /* iron-oxide rust — the one accent */
   --signal-dim: #C6462F33;
+  /* --signal is 4.24:1 on paper: large text and graphics only. Small rust
+     text and links use --signal-text (5.76:1). */
+  --signal-text: #A83420;
   --ok: #2E6E4E;
   --radius: 14px;
   --radius-sm: 10px;
@@ -53,7 +56,7 @@ input, textarea {
 }
 
 a {
-  color: var(--signal);
+  color: var(--signal-text);
   text-decoration: none;
   border-bottom: 1px solid var(--signal-dim);
 }
@@ -64,6 +67,26 @@ a:hover {
 
 svg {
   display: block;
+}
+
+/* Visible keyboard focus on everything (WCAG 2.4.7). Mouse clicks don't
+   trigger :focus-visible on buttons, so this only shows for keyboard use. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Visually hidden, still read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @keyframes rise {

@@ -543,3 +543,45 @@ bottom bar is only for sending (attach, input, send).
 thumb on mobile, which is acceptable for a destructive, infrequent action.
 The pill's tap target is extended to ~44px with a pseudo-element, ahead of
 the Stage 7 accessibility pass.
+
+## ADR-0020: Stage 7: legal pages from the repo Markdown; accessibility fixes via tokens and live regions
+
+**Date:** 2026-09-28
+**Stage:** 7
+
+**Context:** Stage 7 needs Privacy and Terms pages, link previews, a 404 page
+and the `ACCESSIBILITY.md` pass. The legal drafts will keep changing (the
+placeholders, then lawyer edits), and the accessibility audit listed specific
+contrast failures and missing semantics.
+
+**Decision:**
+- **Legal pages** render `legal/*.md` at runtime with `marked` in a lazy
+  `LegalPage` route, so the repo Markdown is the only copy. The Angular
+  builder can't read outside `frontend/`, so `scripts/copy-legal.mjs`
+  (npm `prebuild`/`prestart`) copies the files into the gitignored
+  `public/legal/`. The drafts' "Not legal advice" note is addressed to the
+  operator, so it's removed before rendering. The Privacy Policy now
+  discloses Sentry (ADR-0017).
+- **404** is an Angular `**` route, not a static `404.html`, because the
+  Workers SPA fallback (ADR-0016) serves `index.html` for every unknown
+  path.
+- **Contrast:** `--ink-faint` is now decorative only; informational text
+  uses `--ink-soft`. A new `--signal-text` (#A83420) is used for small rust
+  text and links, and `--signal` is kept for dots, graphics and large text.
+- **Semantics:** `header`/`main`/`footer` landmarks, a hidden `h1` on the
+  room page, always-present toast live regions (`status` for info, `alert`
+  for errors, which also get a ⚠ so they don't rely on color alone), and a
+  hidden announcer for joins, leaves and the 2-minute warning. The announcer
+  resets silently when our own participant id changes, so a reconnect
+  doesn't announce everyone already in the room.
+- **⋯ menu** follows the ARIA menu-button pattern: `aria-haspopup`/
+  `aria-expanded`, focus moves to the first item on open, arrows/Home/End
+  move, Esc closes and returns focus, Tab closes.
+- **Targets:** icon buttons are 44px, and the 22px ⋯ glyph gets a 44px
+  invisible hit area.
+
+**Consequences:** The legal pages show the `{{...}}` placeholders until
+they're filled, so they must be filled before launch (tracked in
+KNOWLEDGE.md). Lighthouse accessibility is 100 on every route. The human
+checks (screen reader, keyboard walkthrough, zoom) are still required and
+tracked.

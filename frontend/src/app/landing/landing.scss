@@ -26,7 +26,7 @@
   font-size: 12px;
   letter-spacing: .18em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   margin-bottom: 22px;
 }
 
@@ -112,6 +112,12 @@ h1 {
     box-shadow: var(--shadow);
   }
 
+  // The input drops its own outline, so the row carries the focus ring.
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+
   input {
     flex: 1;
     background: none;
@@ -126,12 +132,13 @@ h1 {
     min-width: 0;
 
     &::placeholder {
-      color: var(--ink-faint);
+      color: var(--ink-soft);
       letter-spacing: .28em;
     }
   }
 
   button {
+    min-height: 44px;
     padding: 0 18px;
     border-radius: 9px;
     font-weight: 600;
@@ -150,7 +157,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   font-size: 12px;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -167,11 +174,11 @@ h1 {
 .note {
   margin-top: 34px;
   font-size: 13px;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   line-height: 1.6;
 
   b {
-    color: var(--ink-soft);
+    color: var(--ink);
     font-weight: 500;
   }
 }

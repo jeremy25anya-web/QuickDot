@@ -1,17 +1,31 @@
-<div class="topbar">
-  <div class="brandmark">quickdot<span class="dot"></span></div>
-</div>
+<header class="topbar">
+  <div class="brandmark">quickdot<span class="dot" aria-hidden="true"></span></div>
+</header>
 
 <router-outlet />
 
 <footer>
-  <div>An <span class="a">Amartian</span> product<span class="fdot"></span>Useful things, made with care.</div>
+  <div>An <span class="a">Amartian</span> product<span class="fdot" aria-hidden="true"></span>Useful things, made with care.</div>
   <nav class="legal" aria-label="Legal">
     <a routerLink="/privacy">Privacy</a>
     <a routerLink="/terms">Terms</a>
   </nav>
 </footer>
 
-@if (toast.current(); as t) {
-  <div class="toast on" [class.err]="t.error">{{ t.message }}</div>
-}
+<!-- Always-present live regions so toasts are announced: role="status" for
+     confirmations, role="alert" for errors. Errors also get a ⚠ so they
+     don't rely on color alone (WCAG 1.4.1). -->
+<div role="status">
+  @if (toast.current(); as t) {
+    @if (!t.error) {
+      <div class="toast on">{{ t.message }}</div>
+    }
+  }
+</div>
+<div role="alert">
+  @if (toast.current(); as t) {
+    @if (t.error) {
+      <div class="toast on err"><span aria-hidden="true">⚠ </span>{{ t.message }}</div>
+    }
+  }
+</div>
