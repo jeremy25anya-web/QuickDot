@@ -22,30 +22,15 @@ a record of what was asked and answered.
       `legal/TERMS-OF-SERVICE.md` already exist as solid drafts but explicitly
       flag themselves as "not legal advice" — the spec's Definition of Done
       requires both be lawyer-reviewed before launch.
-- [ ] **Confirm Sentry events arrive scrubbed.** DSNs supplied 2026-09-28:
-      backend `SENTRY_DSN` staged as a Fly secret (live on next deploy),
-      frontend DSN in `environment.ts`. After deploy, trigger one test error
-      per side and check in Sentry that no URL room codes, IPs or messages
-      came through.
-- [ ] **Stage 6 (Hardening) is partially done, not signed off.** Origin lock
-      (WS + CORS), security headers, metadata-only audit logging with 30-day
-      retention, and the frontend reconnect UI are all implemented and
-      tested (see ADR-0012 through ADR-0014) — including an end-to-end
-      hostile-input pass (`OriginCheckIntegrationTest` +
-      `QuickDotWebSocketHandlerTest`'s existing oversized/blocked-type/flood
-      cases). Load test run against prod 2026-09-28 (backend deploy
-      `01M3MZR3VVEPECT7DXV3WG7MXZ`): all 10 §6 checks pass, including
-      per-IP room limits with a spoofed `Fly-Client-IP` header ignored (so
-      Fly overwrites client-supplied values); 3 concurrent 25 MB transfers
-      complete at 5.1-5.9 MB/s each, `/healthz` 17/17 OK (median 83 ms, max
-      553 ms), no OOM or restart events on the 512 MB machine. What's still
-      open: confirming Sentry events arrive scrubbed (above), and checking
-      `audit.log` on the machine shows distinct IP hashes and no content
-      (`flyctl ssh console -a quickdot-api -C "tail /app/logs/audit.log"`).
-      Per `CLAUDE.md`'s stage discipline, don't mark Stage 6 done until
-      both land.
 
 ## Resolved
+
+- [x] **Stage 6 (Hardening) signed off 2026-09-28.** Origin lock, CORS,
+      security headers, reconnect UI, metadata-only audit log (ADR-0012 to
+      0014), Sentry scrubbed on both halves (ADR-0017), per-IP room limits
+      and real client IP (ADR-0018). Prod load test passed all 10 §6 checks
+      with no OOM. Jeremy confirmed the Sentry test event arrived scrubbed
+      and `audit.log` shows hashed IPs with no content.
 
 - [x] **Per-IP room-creation limits + real client IP** — resolved
       2026-09-28 (ADR-0018). `web.ClientIpResolver` reads `Fly-Client-IP`

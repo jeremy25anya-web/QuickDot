@@ -23,5 +23,9 @@ export const routes: Routes = [
     data: { doc: 'terms' },
     loadComponent: () => import('./legal/legal-page').then((m) => m.LegalPage)
   },
-  { path: '**', redirectTo: '' }
+  {
+    path: '**',
+    title: 'Not found · QuickDot',
+    loadComponent: () => import('./not-found/not-found').then((m) => m.NotFound)
+  }
 ];
