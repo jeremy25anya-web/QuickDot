@@ -40,6 +40,13 @@ request or a child-safety report).
 uses **no cookies** and collects only aggregate, non-identifying usage data. We
 do not build advertising profiles and we do not sell data.
 
+**Error monitoring.** We use **Sentry** to receive reports when the app or our
+server hits an error. A report contains the type of error and where in our code
+it happened. Before a report leaves your browser or our server, we remove error
+messages, room codes, IP addresses, and request details, and we have configured
+Sentry not to store IP addresses. Sentry processes these reports in the United
+States.
+
 ## What we do **not** collect
 No names, emails, phone numbers, or passwords. No accounts. No stored message or
 file content. No advertising trackers or third-party ad cookies.
@@ -54,8 +61,8 @@ want it processed for these purposes, do not use the service.
 We do not sell your data. We may disclose the limited technical data we hold:
 - to comply with a valid legal request or court order;
 - to meet child-safety reporting obligations required by Canadian law;
-- to our infrastructure providers (Cloudflare, Fly.io) strictly to run the
-  service.
+- to our infrastructure providers (Cloudflare, Fly.io) and our error-monitoring
+  provider (Sentry) strictly to run the service.
 
 ## Where your data is processed
 Our infrastructure providers may process data on servers **outside Canada**

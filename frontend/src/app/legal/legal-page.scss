@@ -1,0 +1,69 @@
+:host {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.legal {
+  width: 100%;
+  max-width: 68ch;
+  padding: 88px 22px 40px;
+  color: var(--ink);
+  line-height: 1.65;
+  font-size: 15px;
+}
+
+.state {
+  color: var(--ink-soft);
+}
+
+// Content arrives through [innerHTML], so it has no encapsulation attribute.
+article ::ng-deep {
+  h1 {
+    font-family: 'Space Grotesk';
+    font-size: 28px;
+    letter-spacing: -.02em;
+    margin: 0 0 6px;
+  }
+
+  h2 {
+    font-family: 'Space Grotesk';
+    font-size: 18px;
+    margin: 32px 0 8px;
+  }
+
+  p,
+  ul {
+    margin: 0 0 12px;
+  }
+
+  ul {
+    padding-left: 20px;
+  }
+
+  li + li {
+    margin-top: 4px;
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  a {
+    color: var(--signal-text, var(--ink));
+  }
+}
+
+.back {
+  display: inline-block;
+  margin-top: 28px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 12px 0;
+
+  &:hover {
+    color: var(--ink);
+  }
+}

@@ -4,7 +4,13 @@
 
 <router-outlet />
 
-<footer>An <span class="a">Amartian</span> product<span class="fdot"></span>Useful things, made with care.</footer>
+<footer>
+  <div>An <span class="a">Amartian</span> product<span class="fdot"></span>Useful things, made with care.</div>
+  <nav class="legal" aria-label="Legal">
+    <a routerLink="/privacy">Privacy</a>
+    <a routerLink="/terms">Terms</a>
+  </nav>
+</footer>
 
 @if (toast.current(); as t) {
   <div class="toast on" [class.err]="t.error">{{ t.message }}</div>

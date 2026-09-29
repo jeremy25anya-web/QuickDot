@@ -1,0 +1,14 @@
+<main class="legal">
+  @switch (html()) {
+    @case (undefined) {
+      <p class="state">Loading…</p>
+    }
+    @case (null) {
+      <p class="state">This page couldn't be loaded. Please try again.</p>
+    }
+    @default {
+      <article [innerHTML]="html()"></article>
+    }
+  }
+  <a class="back" routerLink="/">← Back to QuickDot</a>
+</main>
