@@ -35,20 +35,21 @@ h1 {
   font-weight: 600;
   letter-spacing: -.03em;
   line-height: 1.02;
-  font-size: clamp(38px, 8vw, 64px);
+  font-size: clamp(26px, 8.5vw, 64px); // "between two devices." is nowrap; 8.5vw keeps it inside a 320px phone
   margin: 0 0 18px;
 
   .em {
-    position: relative;
     white-space: nowrap;
 
+    // The brand dot doubles as the headline's full stop. Inline and sized in
+    // em so it sits on the baseline at a real period's size and spacing at
+    // every font size, and counts toward the centred line's width.
     &::after {
       content: "";
-      position: absolute;
-      right: -13px;
-      bottom: .16em;
-      width: 9px;
-      height: 9px;
+      display: inline-block;
+      width: .15em;
+      height: .15em;
+      margin-left: .05em;
       border-radius: 50%;
       background: var(--signal);
     }
