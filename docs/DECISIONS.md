@@ -585,3 +585,35 @@ they're filled, so they must be filled before launch (tracked in
 KNOWLEDGE.md). Lighthouse accessibility is 100 on every route. The human
 checks (screen reader, keyboard walkthrough, zoom) are still required and
 tracked.
+
+---
+
+## ADR-0021: Report drafts an email to the abuse inbox instead of flagging server-side
+
+**Date:** 2026-09-30
+**Stage:** 7
+
+**Context:** The per-message ⋯ menu's Report action was carried over from the
+prototype as a placeholder: it only showed a toast ("Reported. In the live
+app this flags the room for review.") and sent nothing anywhere. On the live
+site that misleads someone reporting real abuse into thinking they were
+heard. The Terms (§6) and Privacy Policy already name abuse@amartian.ca as
+the reporting channel, and spec §6 requires a real reporting path.
+
+**Decision:** Report opens a `mailto:abuse@amartian.ca` draft
+(`core/report.ts`). The draft has the room code, an ISO timestamp, the item
+kind, and for files the MIME type and exact byte size. Those are enough to
+find the room and the matching `file_relayed` entry in the audit log
+(ADR-0013). It never includes message text, file names or file contents.
+The reporter describes what they saw in their own words, and the draft
+points CSAM reports to Cybertip.ca as well. The toast names the address in
+case no mail app catches the link.
+
+**Alternatives considered:** A server-side `report` message written to the
+audit log. That's smoother for the reporter, but nobody is notified unless
+alerting is built too, so on its own it's a silent flag. It could be added
+later alongside email.
+
+**Consequences:** Reports land where someone is already committed to read
+them, with no new backend surface. Reporters without a configured mail app
+must copy the address from the toast.

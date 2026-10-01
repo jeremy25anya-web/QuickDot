@@ -4,6 +4,7 @@ import { RoomService } from '../core/room.service';
 import { ToastService } from '../core/toast.service';
 import { FeedItem } from '../core/feed-item';
 import { fileExtension, formatSize } from '../core/limits';
+import { ABUSE_EMAIL, reportMailto } from '../core/report';
 
 type MenuAction = { label: string; run: () => void };
 
@@ -255,11 +256,21 @@ export class Room implements OnInit, OnDestroy {
     } else {
       actions.push({ label: 'Download', run: () => this.downloadItem(item) });
     }
-    actions.push({
-      label: 'Report',
-      run: () => this.toast.show('Reported. In the live app this flags the room for review.')
-    });
+    actions.push({ label: 'Report', run: () => this.reportItem(item) });
     return actions;
+  }
+
+  /** Drafts an abuse report in the reporter's mail app (see core/report.ts). */
+  private reportItem(item: FeedItem): void {
+    const code = this.room.code();
+    if (!code) return;
+    const a = document.createElement('a');
+    a.href = reportMailto(item, code);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Name the address in case no mail app is set up to catch the link.
+    this.toast.show(`Opening an email to ${ABUSE_EMAIL}.`);
   }
 
   runMenuAction(action: MenuAction): void {

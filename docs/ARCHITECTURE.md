@@ -265,7 +265,8 @@ quickdot/
   `transferId` in memory only until `file-end`, then assembles one `Blob` —
   never rendered progressively, since neither the spec nor the prototype
   define a partial-transfer UI state.
-- Per-message ⋯ menu (copy/download/report) is positioned with CSS
+- Per-message ⋯ menu (copy/download/report; Report drafts a metadata-only
+  `mailto:` to the abuse inbox via `core/report.ts`, ADR-0021) is positioned with CSS
   (`position:absolute` within the message bubble) rather than the
   prototype's JS bounding-rect calculation — same behavior, no
   `ElementRef`/measurement code needed.
