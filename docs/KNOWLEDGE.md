@@ -20,7 +20,9 @@ a record of what was asked and answered.
       Claude once it's on so the Stage 7 checklist can be ticked.
 - [ ] **Human accessibility checks** (Stage 7, `ACCESSIBILITY.md` → Status):
       keyboard-only walkthrough, a screen-reader pass (NVDA on Windows is
-      free), 200% zoom, target spacing on a phone.
+      free), 200% zoom, target spacing on a phone. Since the v2 redesign
+      (ADR-0022, 2026-10-09) also cover dark mode, the room ⋯ menu (layout
+      and theme switches), two-tap leave, and "End room for everyone".
 
 - [ ] **Legal review outstanding.** Both `legal/PRIVACY-POLICY.md` and
       `legal/TERMS-OF-SERVICE.md` already exist as solid drafts but explicitly
@@ -28,6 +30,13 @@ a record of what was asked and answered.
       requires both be lawyer-reviewed before launch.
 
 ## Resolved
+
+- [x] **v2 redesign shipped** — 2026-10-09 (ADR-0022). Frontend live via
+      Cloudflare; backend deployed by hand with
+      `flyctl deploy --ha=false --remote-only` because the GitHub deploy
+      workflow is still gated off (`FLY_DEPLOY_ENABLED` unset). Verified in
+      prod: host token issued, wrong token rejected (`NOT_HOST`), the right
+      token ends the room for everyone and later joins get `ROOM_NOT_FOUND`.
 
 - [x] **Legal placeholders filled** — 2026-09-28. Operator brand
       "Amartian Studios", contact hello@amartian.ca, abuse
