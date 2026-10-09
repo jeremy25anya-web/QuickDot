@@ -10,7 +10,19 @@
   <link rel="icon" href="favicon.ico" sizes="32x32">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <meta name="theme-color" content="#EEF0EC">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#EEF0EC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121614" media="(prefers-color-scheme: dark)">
+  <script>
+    /* Resolve the theme before first paint so there's no flash. Preference
+       (PreferencesService): auto (follow the system), light or dark. */
+    (function () {
+      var pref = 'auto';
+      try { pref = localStorage.getItem('qd-theme') || 'auto'; } catch (e) {}
+      var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    })();
+  </script>
   <!-- Link previews (Open Graph / Twitter). URLs must be absolute. -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="QuickDot">

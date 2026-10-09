@@ -11,6 +11,7 @@ import {
   JoinedMessage,
   LeftMessage,
   ParticipantView,
+  RoomEndedMessage,
   ServerMessage,
   WelcomeMessage
 } from './protocol';
@@ -19,6 +20,8 @@ import { ToastService } from './toast.service';
 export type ConnectionState = 'connecting' | 'open' | 'reconnecting' | 'closed';
 
 const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000];
+/** One colour per other person (styles.scss --p0..--p6); you stay neutral. */
+export const PARTICIPANT_COLOURS = 7;
 
 interface IncomingTransfer {
   from: ParticipantView;
@@ -48,7 +51,18 @@ export class RoomService {
   readonly connectionState = signal<ConnectionState>('connecting');
   /** Set when the server rejects the connection outright (room gone/full). */
   readonly fatalError = signal<string | null>(null);
+  /** The server's error code behind fatalError, e.g. ROOM_FULL. */
+  readonly fatalCode = signal<string | null>(null);
+  /** Name of whoever ended the room for everyone, once they have. */
+  readonly endedBy = signal<string | null>(null);
   readonly uploading = signal(false);
+  /**
+   * Colour slot per other participant, for this viewer only: the first
+   * person you meet gets 0, the next 1, and so on. A slot is kept for the
+   * life of the room, so someone's old messages keep their colour after
+   * they leave.
+   */
+  readonly slots = signal<ReadonlyMap<string, number>>(new Map());
 
   readonly connected = computed(() => this.participants().length > 0);
 
@@ -57,6 +71,10 @@ export class RoomService {
   private intentionalClose = false;
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Uploads run one at a time (spec §6: 1 concurrent upload per connection). */
+  private uploadQueue: Promise<void> = Promise.resolve();
+  /** Bumped on every reset, so queued uploads from a previous room are dropped. */
+  private generation = 0;
 
   connect(code: string): void {
     this.reset();
@@ -88,7 +106,7 @@ export class RoomService {
     if (this.socket !== socket) {
       return; // a newer socket already superseded this one
     }
-    if (this.intentionalClose || this.fatalError()) {
+    if (this.intentionalClose || this.fatalError() || this.endedBy()) {
       return; // spec Stage 6 doesn't reconnect after an intentional leave or a room-gone/full rejection
     }
     this.connectionState.set('reconnecting');
@@ -112,30 +130,44 @@ export class RoomService {
       kind: 'text',
       outgoing: true,
       senderName: me.name,
+      at: Date.now(),
       text: trimmed
     });
     this.send({ type: 'text', text: trimmed });
   }
 
-  async sendFile(file: File): Promise<void> {
+  /**
+   * Checks the file against the limits straight away, then queues it.
+   * Several files (a multi-select, a drop, a paste) go one after another.
+   */
+  sendFile(file: File): Promise<void> {
+    if (!this.you() || !this.isOpen()) {
+      return this.uploadQueue;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      this.toast.show(`${file.name} is ${Math.ceil(file.size / (1024 * 1024))} MB. The limit is 25 MB.`, true);
+      return this.uploadQueue;
+    }
+    const ext = fileExtension(file.name);
+    if (BLOCKED_EXTENSIONS.includes(ext)) {
+      this.toast.show(`Can't send .${ext} files. Executables are blocked.`, true);
+      return this.uploadQueue;
+    }
+    const generation = this.generation;
+    this.uploadQueue = this.uploadQueue.then(() => (generation === this.generation ? this.upload(file) : undefined));
+    return this.uploadQueue;
+  }
+
+  /** Ends the room for everyone. The server checks the host token and closes every connection. */
+  endRoom(hostToken: string): void {
+    this.send({ type: 'end-room', hostToken });
+  }
+
+  private async upload(file: File): Promise<void> {
     const me = this.you();
     if (!me || !this.isOpen()) {
       return;
     }
-    if (this.uploading()) {
-      this.toast.show('Finish your current upload first.', true);
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      this.toast.show(`That's ${Math.ceil(file.size / (1024 * 1024))} MB. The limit is 25 MB.`, true);
-      return;
-    }
-    const ext = fileExtension(file.name);
-    if (BLOCKED_EXTENSIONS.includes(ext)) {
-      this.toast.show(`Can't send .${ext} files — executables are blocked.`, true);
-      return;
-    }
-
     const transferId = randomId();
     const isImage = file.type.startsWith('image/');
     this.appendItem({
@@ -143,6 +175,7 @@ export class RoomService {
       kind: isImage ? 'image' : 'file',
       outgoing: true,
       senderName: me.name,
+      at: Date.now(),
       name: file.name,
       mime: file.type,
       size: file.size,
@@ -206,6 +239,9 @@ export class RoomService {
       case 'ping':
         this.send({ type: 'pong' });
         break;
+      case 'room-ended':
+        this.handleRoomEnded(message);
+        break;
       case 'error':
         this.handleError(message);
         break;
@@ -216,12 +252,31 @@ export class RoomService {
     this.reconnectAttempt = 0;
     this.you.set(message.you);
     this.participants.set(message.participants);
+    message.participants.forEach((p) => this.assignSlot(p.id));
     this.expiresAt.set(Date.parse(message.expiresAt));
     this.connectionState.set('open');
   }
 
   private handleJoined(message: JoinedMessage): void {
     this.participants.update((current) => [...current, { id: message.id, name: message.name }]);
+    this.assignSlot(message.id);
+  }
+
+  private handleRoomEnded(message: RoomEndedMessage): void {
+    this.intentionalClose = true; // the server closes us next; don't reconnect
+    this.endedBy.set(message.by);
+    this.connectionState.set('closed');
+  }
+
+  /** Gives a participant the lowest free colour slot, wrapping once all are taken. */
+  private assignSlot(id: string): void {
+    const slots = this.slots();
+    if (slots.has(id)) return;
+    const taken = new Set(slots.values());
+    let slot = 0;
+    while (slot < PARTICIPANT_COLOURS && taken.has(slot)) slot++;
+    if (slot === PARTICIPANT_COLOURS) slot = slots.size % PARTICIPANT_COLOURS;
+    this.slots.set(new Map(slots).set(id, slot));
   }
 
   private handleLeft(message: LeftMessage): void {
@@ -233,7 +288,9 @@ export class RoomService {
       id: message.id,
       kind: 'text',
       outgoing: false,
+      senderId: message.from.id,
       senderName: message.from.name,
+      at: Date.now(),
       text: message.text
     });
   }
@@ -258,7 +315,9 @@ export class RoomService {
       id: message.transferId,
       kind: transfer.mime.startsWith('image/') ? 'image' : 'file',
       outgoing: false,
+      senderId: transfer.from.id,
       senderName: transfer.from.name,
+      at: Date.now(),
       name: transfer.name,
       mime: transfer.mime,
       size: blob.size,
@@ -268,6 +327,7 @@ export class RoomService {
 
   private handleError(message: ErrorMessage): void {
     if (message.code === 'ROOM_NOT_FOUND' || message.code === 'ROOM_FULL') {
+      this.fatalCode.set(message.code);
       this.fatalError.set(message.message);
       this.connectionState.set('closed');
       return;
@@ -280,6 +340,7 @@ export class RoomService {
   }
 
   private reset(): void {
+    this.generation++;
     clearTimeout(this.reconnectTimer);
     this.socket?.close();
     this.socket = null;
@@ -294,6 +355,9 @@ export class RoomService {
     this.items.set([]);
     this.expiresAt.set(null);
     this.fatalError.set(null);
+    this.fatalCode.set(null);
+    this.endedBy.set(null);
+    this.slots.set(new Map());
     this.uploading.set(false);
     this.incomingTransfers.clear();
   }

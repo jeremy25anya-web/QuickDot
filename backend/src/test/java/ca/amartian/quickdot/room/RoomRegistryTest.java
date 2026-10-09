@@ -138,4 +138,25 @@ class RoomRegistryTest {
             return now;
         }
     }
+
+    @Test
+    void endRemovesRoomImmediately() {
+        Room room = registry.createRoom();
+
+        registry.end(room.code());
+
+        assertThat(registry.findActiveRoom(room.code())).isEmpty();
+    }
+
+    @Test
+    void hostTokenIsUniquePerRoomAndCheckedExactly() {
+        Room a = registry.createRoom();
+        Room b = registry.createRoom();
+
+        assertThat(a.hostToken()).hasSize(32).isNotEqualTo(b.hostToken());
+        assertThat(a.isHostToken(a.hostToken())).isTrue();
+        assertThat(a.isHostToken(b.hostToken())).isFalse();
+        assertThat(a.isHostToken(null)).isFalse();
+        assertThat(a.isHostToken("")).isFalse();
+    }
 }

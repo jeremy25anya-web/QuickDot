@@ -5,12 +5,22 @@
 <router-outlet />
 
 <footer>
-  <div>An <span class="a">Amartian</span> product<span class="fdot" aria-hidden="true"></span>Useful things, made with care.</div>
+  <div>An <span class="a">Amartian</span> product<span class="fdot" aria-hidden="true"></span>ephemeral by design</div>
   <nav class="legal" aria-label="Legal">
     <a routerLink="/privacy">Privacy</a>
     <a routerLink="/terms">Terms</a>
   </nav>
 </footer>
+
+@if (notice.current(); as n) {
+  <div class="notice" (click)="onNoticeBackdrop($event)">
+    <div class="card" role="alertdialog" aria-modal="true" aria-labelledby="notice-title" aria-describedby="notice-body">
+      <h2 id="notice-title">{{ n.title }}</h2>
+      <p id="notice-body">{{ n.body }}</p>
+      <button #noticeOk type="button" (click)="notice.dismiss()">Got it</button>
+    </div>
+  </div>
+}
 
 <!-- Always-present live regions so toasts are announced: role="status" for
      confirmations, role="alert" for errors. Errors also get a ⚠ so they

@@ -4,6 +4,18 @@
   min-height: 100dvh;
 }
 
+// In a room the page is the app: no footer, and on narrow screens the
+// brandmark would sit on top of the room header.
+:host(.in-room) footer {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  :host(.in-room) .topbar {
+    display: none;
+  }
+}
+
 .topbar {
   position: fixed;
   top: 0;
@@ -42,11 +54,11 @@ footer {
   padding: 22px;
   text-align: center;
   font-size: 12px;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
   letter-spacing: .01em;
 
   .a {
-    color: var(--ink);
+    color: var(--ink-soft);
   }
 
   .fdot {
@@ -66,7 +78,7 @@ footer {
     margin-top: 2px;
 
     a {
-      color: var(--ink-soft);
+      color: var(--ink-faint);
       text-decoration: none;
       padding: 12px 10px; // ~44px tap target
       border-bottom: none;
@@ -84,8 +96,8 @@ footer {
   left: 50%;
   bottom: 88px;
   transform: translateX(-50%);
-  background: var(--ink);
-  color: var(--paper-raised);
+  background: var(--solid);
+  color: var(--solid-ink);
   padding: 11px 17px;
   border-radius: 11px;
   font-size: 13.5px;
@@ -97,6 +109,55 @@ footer {
   animation: rise .3s cubic-bezier(.2, .8, .2, 1) both;
 
   &.err {
-    background: var(--signal-text); // 6.2:1 with the light text; --signal is only 4.56
+    background: var(--signal-text); // 6.6:1 with --on-signal (5.5:1 in dark)
+    color: var(--on-signal);
+  }
+}
+
+/* a notice that waits to be dismissed, for things a toast is too quick for */
+.notice {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  backdrop-filter: blur(3px);
+
+  .card {
+    max-width: 340px;
+    padding: 26px 24px 20px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+    text-align: center;
+    animation: pop .28s cubic-bezier(.2, .8, .2, 1) both;
+  }
+
+  h2 {
+    margin: 0 0 8px;
+    font-family: 'Space Grotesk';
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+  }
+
+  p {
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  button {
+    width: 100%;
+    min-height: 44px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--solid);
+    color: var(--solid-ink);
+    font-weight: 600;
   }
 }

@@ -50,6 +50,11 @@ export interface PingMessage {
   type: 'ping';
 }
 
+export interface RoomEndedMessage {
+  type: 'room-ended';
+  by: string;
+}
+
 export interface ErrorMessage {
   type: 'error';
   code: string;
@@ -64,4 +69,5 @@ export type ServerMessage =
   | FileStartMessage
   | FileEndMessage
   | PingMessage
+  | RoomEndedMessage
   | ErrorMessage;

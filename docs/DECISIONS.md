@@ -617,3 +617,55 @@ later alongside email.
 **Consequences:** Reports land where someone is already committed to read
 them, with no new backend surface. Reporters without a configured mail app
 must copy the address from the toast.
+
+---
+
+## ADR-0022: v2 UI redesign ported from the new prototype; host can end a room for everyone
+
+**Date:** 2026-10-09
+**Stage:** 7 (post-launch polish)
+
+**Context:** A redesigned single-file prototype (`index.html` at the repo
+root, removed once ported) replaced the original look: light/dark/auto
+theme, per-viewer participant colours, a header that collapses into one row
+once someone joins, a room menu (copy/share link, copy code, layout, theme,
+leave, end for everyone), a two-tap leave X, a "ledger" layout alongside
+bubbles, drag-and-drop and paste anywhere, relative timestamps, and a
+dismissable notice for a full room. The prototype ran on BroadcastChannel
+between tabs, so some of its behaviour had no server behind it.
+
+**Decision:**
+- Port the UI into the existing Angular components and keep every live
+  feature: server-backed rooms, reconnect, the screen-reader announcer and
+  ARIA menu keyboard pattern, Report (ADR-0021), the 429 message, legal
+  pages, 404, Sentry, and the small-phone headline fix.
+- **End room for everyone needs the server.** `POST /api/rooms` now also
+  returns a random 128-bit `hostToken`, kept only by the creating tab
+  (sessionStorage, so it survives a refresh). The client sends
+  `{type:"end-room", hostToken}`; `QuickDotWebSocketHandler` checks it in
+  constant time (`Room.isHostToken`), sends `room-ended` (with the host's
+  fun name) to everyone else, closes every connection, and removes the room
+  (`RoomRegistry.end`), so later joins get `ROOM_NOT_FOUND`. A wrong token
+  gets `NOT_HOST` and nothing changes. The token is never broadcast.
+- Multiple files (multi-select, drop, paste) go through a client-side
+  upload queue in `RoomService`, since the server allows one concurrent
+  upload per connection (spec §6) and would otherwise reject the rest.
+- Theme and layout are per-device conveniences in localStorage
+  (`qd-theme`, `qd-layout`); an inline script in `index.html` applies the
+  theme before first paint, and other open tabs follow changes.
+- New dark tokens and participant colours were checked: every text pairing
+  is at least 4.5:1 in both themes.
+- The component-style budget rises from 4/8 kB to 14/20 kB: the room's
+  styles are about 12 kB and load only with the room chunk.
+
+**Not ported:** the prototype's `?demo` mode (sample room for screenshots;
+it would need a fake RoomService, and it embedded a personal file name)
+and its catch-up sync that replays earlier items to a newcomer (the server
+relays and never holds content, so there's nothing to replay). Both are
+logged in IDEAS.md.
+
+**Consequences:** One new protocol message each way and one new response
+field; old clients ignore them. A host who closes their tab loses the
+ability to end the room for everyone, which matches "leaving drops host"
+in the prototype. Human accessibility checks should cover dark mode and
+the new menus.

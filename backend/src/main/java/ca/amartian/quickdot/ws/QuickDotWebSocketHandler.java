@@ -20,6 +20,7 @@ import ca.amartian.quickdot.ws.protocol.JoinedMessage;
 import ca.amartian.quickdot.ws.protocol.LeftMessage;
 import ca.amartian.quickdot.ws.protocol.OutgoingTextMessage;
 import ca.amartian.quickdot.ws.protocol.ParticipantView;
+import ca.amartian.quickdot.ws.protocol.RoomEndedMessage;
 import ca.amartian.quickdot.ws.protocol.WelcomeMessage;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -138,6 +139,7 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
             case "text" -> handleText(session, participantId, node);
             case "file-start" -> handleFileStart(session, participantId, node);
             case "file-end" -> handleFileEnd(session, participantId, node);
+            case "end-room" -> handleEndRoom(session, participantId, node);
             default -> {
                 // Unknown type — ignore.
             }
@@ -288,6 +290,34 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
         });
     }
 
+    /**
+     * The host ends the room for everyone: only a connection presenting the
+     * room's host token may do this. Everyone else is told who ended it, then
+     * every connection is closed and the room is removed, so later joins get
+     * ROOM_NOT_FOUND.
+     */
+    private void handleEndRoom(WebSocketSession session, String participantId, JsonNode node) {
+        Room room = activeRoomOrNull(session);
+        if (room == null) {
+            return;
+        }
+        if (!room.isHostToken(node.path("hostToken").asString(""))) {
+            sendQuiet(session, ErrorMessage.of("NOT_HOST", "Only the person who created this room can end it"));
+            return;
+        }
+        Participant host = findParticipant(room, participantId);
+        String by = host != null ? host.name() : "The host";
+        roomRegistry.end(room.code());
+        for (Participant participant : room.participants()) {
+            sessionRegistry.find(participant.id()).ifPresent(other -> {
+                if (!participant.id().equals(participantId)) {
+                    sendQuiet(other, RoomEndedMessage.of(by));
+                }
+                closeQuiet(other);
+            });
+        }
+    }
+
     /** Drops the transfer and tells the uploader why — peers just see the transfer stop. */
     private void abortTransfer(WebSocketSession session, FileTransfer transfer, String code, String message) {
         fileTransferRegistry.remove(transfer.transferId());
@@ -343,6 +373,14 @@ public class QuickDotWebSocketHandler extends AbstractWebSocketHandler {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(message)));
         } catch (IOException e) {
             // Best-effort: a broken pipe here just means the peer is already gone.
+        }
+    }
+
+    private void closeQuiet(WebSocketSession session) {
+        try {
+            session.close(CloseStatus.NORMAL);
+        } catch (IOException e) {
+            // Already gone.
         }
     }
 

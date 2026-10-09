@@ -1,25 +1,96 @@
-/* Global design tokens and reset, ported from quickdot.html (spec §1: the
-   prototype is the approved reference design). Component-scoped styles live
+/* Global design tokens and reset, ported from the approved prototype
+   (spec §1; the v2 redesign adds dark mode and participant colours). Component-scoped styles live
    in each component's .scss file. */
 
 :root {
+  color-scheme: light;
   --paper: #EEF0EC;
   --paper-raised: #F7F8F5;
   --ink: #171C1A;
-  --ink-soft: #5B635F;
-  --ink-faint: #9AA19C; /* 2.3:1 on paper, decorative only (ACCESSIBILITY.md) */
+  --ink-soft: #4B534F;
+  --ink-faint: #5E655F; /* secondary text, 5.2:1 on paper */
+  --ink-ghost: #9AA19C; /* decoration only, never text */
   --line: #D8DCD6;
   --line-strong: #C4C9C2;
-  --signal: #C6462F; /* iron-oxide rust — the one accent */
-  --signal-dim: #C6462F33;
-  /* --signal is 4.24:1 on paper: large text and graphics only. Small rust
-     text and links use --signal-text (5.76:1). */
+  --signal: #B33E28; /* iron-oxide rust, the one brand accent; 5.0:1 on paper */
+  --signal-dim: #B33E2833;
+  /* Small rust text and links (5.76:1). --signal now passes too, but legal
+     pages and the error toast keep the deeper tone. */
   --signal-text: #A83420;
+  --on-signal: #FFFFFF; /* text on a rust fill */
+  --solid: #171C1A; /* primary buttons, send, toast */
+  --solid-ink: #F7F8F5;
+  --solid-hover: #0D1210;
+  --out-bg: #171C1A; /* your items: the inverse of the page */
+  --out-ink: #F7F8F5;
+  --out-link: #F0C9BF;
+  --out-badge: #FFFFFF1F;
+  --badge-ink: #93301D; /* rust text on the tinted file badge */
+  --sent: #E5E8E2; /* ledger: your rows sit a shade below the page */
+  --me: #171C1A; /* your node, stripe and dot */
   --ok: #2E6E4E;
   --radius: 14px;
   --radius-sm: 10px;
   --shadow: 0 1px 2px rgba(23, 28, 26, .04), 0 8px 30px rgba(23, 28, 26, .06);
+
+  /* Participant colours, assigned per viewer to other people in the order
+     they appear (you stay neutral). Only small details use them: the name,
+     the ledger stripe and dot, and the presence dots. All are 4.5:1+ on
+     paper and raised paper in both themes. */
+  --p0: #A73923; /* rust */
+  --p1: #026C95; /* sky */
+  --p2: #266203; /* fern */
+  --p3: #7D2A79; /* orchid */
+  --p4: #7F6B03; /* gold */
+  --p5: #055F5D; /* teal */
+  --p6: #5D52B4; /* violet */
+  --acc: var(--signal); /* anything not tied to a person */
 }
+
+/* Dark theme. data-theme is set before first paint by the inline script in
+   index.html (auto follows the system), then kept in sync by
+   PreferencesService. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #121614;
+  --paper-raised: #1B201E;
+  --ink: #E8ECE7;
+  --ink-soft: #B9C0BB;
+  --ink-faint: #8F9791;
+  --ink-ghost: #5C645F;
+  --line: #2A302D;
+  --line-strong: #3A423E;
+  --signal: #E2694F;
+  --signal-dim: #E2694F33;
+  --signal-text: #E2694F;
+  --on-signal: #121614;
+  --solid: #E8ECE7;
+  --solid-ink: #121614;
+  --solid-hover: #FFFFFF;
+  --out-bg: #D5DBD5;
+  --out-ink: #121614;
+  --out-link: #8F2E1C;
+  --out-badge: #1216141A;
+  --badge-ink: #F0866F;
+  --sent: #0E1110;
+  --me: #D5DBD5;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 30px rgba(0, 0, 0, .35);
+  --p0: #FE9D88;
+  --p1: #62C7FC;
+  --p2: #A7E193;
+  --p3: #FAB1F3;
+  --p4: #CEB756;
+  --p5: #5BE7E2;
+  --p6: #B3B1FF;
+}
+
+.p0 { --acc: var(--p0); }
+.p1 { --acc: var(--p1); }
+.p2 { --acc: var(--p2); }
+.p3 { --acc: var(--p3); }
+.p4 { --acc: var(--p4); }
+.p5 { --acc: var(--p5); }
+.p6 { --acc: var(--p6); }
 
 * {
   box-sizing: border-box;
@@ -37,6 +108,7 @@ body {
   font-weight: 450;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+  transition: background .25s, color .25s;
 }
 
 button {
@@ -99,6 +171,11 @@ svg {
   to { opacity: 1; transform: none; }
 }
 
+@keyframes slidein {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
 @keyframes travel {
   from { left: -40%; }
   to { left: 100%; }
@@ -109,7 +186,7 @@ svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *, *::before, *::after {
     animation: none !important;
     transition: none !important;
   }

@@ -6,6 +6,8 @@ import { environment } from '../../environments/environment';
 export interface CreateRoomResponse {
   code: string;
   expiresAt: string;
+  /** Only the creator gets this; it lets them end the room for everyone. */
+  hostToken: string;
 }
 
 @Injectable({ providedIn: 'root' })

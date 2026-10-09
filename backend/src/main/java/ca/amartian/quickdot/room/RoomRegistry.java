@@ -84,6 +84,11 @@ public class RoomRegistry {
         }
     }
 
+    /** Removes a room at once, e.g. when its host ends it for everyone. */
+    public void end(String code) {
+        rooms.remove(code);
+    }
+
     /** Evicts expired rooms and rooms empty past the grace window. */
     @Scheduled(fixedDelayString = "${room.sweep-interval-ms:10000}")
     public void sweep() {

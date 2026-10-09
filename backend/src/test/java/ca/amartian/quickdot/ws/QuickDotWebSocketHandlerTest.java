@@ -364,4 +364,44 @@ class QuickDotWebSocketHandlerTest {
         ArgumentCaptor<TextMessage> secondCaptor = ArgumentCaptor.forClass(TextMessage.class);
         verify(sender, never()).sendMessage(secondCaptor.capture());
     }
+
+    @Test
+    void hostEndingRoomTellsOthersClosesEveryoneAndRemovesRoom() throws Exception {
+        Room room = roomRegistry.createRoom();
+        WebSocketSession host = mockSession(room.code());
+        handler.afterConnectionEstablished(host);
+        WebSocketSession guest = mockSession(room.code());
+        handler.afterConnectionEstablished(guest);
+        clearInvocations(host, guest);
+
+        handler.handleTextMessage(host,
+                new TextMessage("{\"type\":\"end-room\",\"hostToken\":\"" + room.hostToken() + "\"}"));
+
+        ArgumentCaptor<TextMessage> captor = ArgumentCaptor.forClass(TextMessage.class);
+        verify(guest).sendMessage(captor.capture());
+        assertThat(captor.getValue().getPayload()).contains("\"type\":\"room-ended\"");
+        verify(guest).close(CloseStatus.NORMAL);
+        verify(host).close(CloseStatus.NORMAL);
+        verify(host, never()).sendMessage(any());
+        assertThat(roomRegistry.findActiveRoom(room.code())).isEmpty();
+    }
+
+    @Test
+    void endRoomWithWrongTokenIsRejectedAndRoomStays() throws Exception {
+        Room room = roomRegistry.createRoom();
+        WebSocketSession guest = mockSession(room.code());
+        handler.afterConnectionEstablished(guest);
+        WebSocketSession other = mockSession(room.code());
+        handler.afterConnectionEstablished(other);
+        clearInvocations(guest, other);
+
+        handler.handleTextMessage(guest, new TextMessage("{\"type\":\"end-room\",\"hostToken\":\"guess\"}"));
+
+        ArgumentCaptor<TextMessage> captor = ArgumentCaptor.forClass(TextMessage.class);
+        verify(guest).sendMessage(captor.capture());
+        assertThat(captor.getValue().getPayload()).contains("NOT_HOST");
+        verify(other, never()).sendMessage(any());
+        verify(other, never()).close(any());
+        assertThat(roomRegistry.findActiveRoom(room.code())).contains(room);
+    }
 }

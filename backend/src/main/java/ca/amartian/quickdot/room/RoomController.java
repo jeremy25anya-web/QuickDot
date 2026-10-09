@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class RoomController {
 
-    public record CreateRoomResponse(String code, Instant expiresAt) {
+    public record CreateRoomResponse(String code, Instant expiresAt, String hostToken) {
     }
 
     public record ErrorResponse(String code, String message) {
@@ -43,7 +43,7 @@ public class RoomController {
         String hashedIp = ipHasher.hash(clientIpResolver.resolve(request));
         Room room = roomCreationLimiter.createRoom(hashedIp);
         auditLog.roomCreated(room.code(), hashedIp);
-        return new CreateRoomResponse(room.code(), room.expiresAt());
+        return new CreateRoomResponse(room.code(), room.expiresAt(), room.hostToken());
     }
 
     @ExceptionHandler(RoomLimitException.class)

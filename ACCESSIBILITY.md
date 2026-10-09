@@ -84,3 +84,13 @@ and the spelled-out room code.
 Still needs a human before launch: the keyboard-only walkthrough, a real
 screen-reader pass (NVDA or VoiceOver), 200% zoom, and a visual check of
 "adequate spacing" between adjacent targets on a phone.
+
+## Status (2026-10-09): v2 redesign (ADR-0022)
+New light tokens and the whole dark theme were recomputed: every text
+pairing is 4.5:1 or better, including all seven participant colours on
+paper and raised paper in both themes (lowest: gold 4.57:1 on light paper).
+The room menu follows the same menu-button pattern as the item menu (layout
+and theme are `menuitemradio`), the full-room notice is an `alertdialog`
+that takes and returns focus, and copy confirmations are announced. The
+human checks above should now also cover dark mode, the room menu and the
+two-tap leave.

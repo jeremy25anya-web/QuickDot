@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { saveHostToken } from '../core/host-token';
+import { ROOM_CODE_LENGTH, extractCode } from '../core/join-code';
 import { RoomApiService } from '../core/room-api.service';
 import { ToastService } from '../core/toast.service';
 
@@ -9,7 +11,7 @@ import { ToastService } from '../core/toast.service';
   templateUrl: './landing.html',
   styleUrl: './landing.scss'
 })
-export class Landing {
+export class Landing implements OnDestroy {
   private readonly roomApi = inject(RoomApiService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -17,11 +19,18 @@ export class Landing {
   readonly joinCode = signal('');
   readonly creating = signal(false);
 
+  private pasteJoinTimer: ReturnType<typeof setTimeout> | undefined;
+
   onJoinInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const cleaned = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    input.value = cleaned;
-    this.joinCode.set(cleaned);
+    const code = extractCode(input.value);
+    input.value = code;
+    this.joinCode.set(code);
+    clearTimeout(this.pasteJoinTimer);
+    // A pasted code or link joins on its own after a beat, so the person sees what landed.
+    if ((event as InputEvent).inputType === 'insertFromPaste' && code.length === ROOM_CODE_LENGTH) {
+      this.pasteJoinTimer = setTimeout(() => this.join(), 350);
+    }
   }
 
   async createRoom(): Promise<void> {
@@ -30,7 +39,10 @@ export class Landing {
     }
     this.creating.set(true);
     try {
-      const { code } = await this.roomApi.createRoom();
+      const { code, hostToken } = await this.roomApi.createRoom();
+      if (hostToken) {
+        saveHostToken(code, hostToken);
+      }
       this.router.navigate(['/r', code]);
     } catch (err) {
       // 429 = per-IP room limit (spec §6); the server's message says which one.
@@ -42,11 +54,16 @@ export class Landing {
   }
 
   join(): void {
-    const code = this.joinCode().trim();
-    if (code.length < 4) {
-      this.toast.show('Enter the code you were given.', true);
+    clearTimeout(this.pasteJoinTimer);
+    const code = this.joinCode();
+    if (code.length !== ROOM_CODE_LENGTH) {
+      this.toast.show(code ? 'Room codes are 6 characters.' : 'Enter the code you were given.', true);
       return;
     }
     this.router.navigate(['/r', code]);
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.pasteJoinTimer);
   }
 }

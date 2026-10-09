@@ -1,8 +1,12 @@
 package ca.amartian.quickdot.room;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class Room {
 
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     private final String code;
     private final Instant createdAt;
     private final Instant expiresAt;
@@ -20,6 +26,11 @@ public final class Room {
     private final String creatorKey;
     private final Map<String, Participant> participants = new ConcurrentHashMap<>();
     private final AtomicInteger itemCount = new AtomicInteger();
+    /**
+     * Handed only to whoever created the room (POST /api/rooms). Proves the
+     * right to end the room for everyone; never broadcast.
+     */
+    private final String hostToken;
 
     /** Set when the room drops to zero participants; cleared if someone rejoins. */
     private volatile Instant emptiedAt;
@@ -33,6 +44,9 @@ public final class Room {
         this.createdAt = createdAt;
         this.expiresAt = createdAt.plus(ttl);
         this.creatorKey = creatorKey;
+        byte[] token = new byte[16];
+        RANDOM.nextBytes(token);
+        this.hostToken = HexFormat.of().formatHex(token);
     }
 
     public String code() {
@@ -49,6 +63,16 @@ public final class Room {
 
     public String creatorKey() {
         return creatorKey;
+    }
+
+    public String hostToken() {
+        return hostToken;
+    }
+
+    /** Constant-time check, so response timing can't be used to guess the token. */
+    public boolean isHostToken(String candidate) {
+        return candidate != null && MessageDigest.isEqual(
+                hostToken.getBytes(StandardCharsets.UTF_8), candidate.getBytes(StandardCharsets.UTF_8));
     }
 
     public boolean isExpired(Instant now) {

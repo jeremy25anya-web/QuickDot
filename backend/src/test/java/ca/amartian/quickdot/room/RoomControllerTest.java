@@ -47,6 +47,10 @@ class RoomControllerTest {
                 .bodyJson()
                 .extractingPath("$.code")
                 .isEqualTo("ABCDEF");
+        assertThat(mvc.post().uri("/api/rooms"))
+                .bodyJson()
+                .extractingPath("$.hostToken")
+                .isEqualTo(room.hostToken());
     }
 
     @Test

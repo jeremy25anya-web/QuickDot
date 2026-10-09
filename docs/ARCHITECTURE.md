@@ -105,6 +105,10 @@ quickdot/
   last-pong timestamps. Deliberately separate from `RoomRegistry` — the room
   domain stays transport-agnostic; this is the only place that knows about
   `WebSocketSession`.
+- **End room (ADR-0022):** `end-room` with the room's `hostToken` (from
+  `POST /api/rooms`, never broadcast) makes the handler send `room-ended`
+  `{by}` to the others, close every session and `RoomRegistry.end` the
+  room. A wrong token gets `error` `NOT_HOST`.
 - `ws.FunNameGenerator` — adjective+creature names, word lists copied
   verbatim from the prototype's `ADJ`/`CREA` arrays (spec §5).
 - `ws.KeepAliveScheduler` — `@Scheduled` ping every `ws.ping-interval-seconds`
@@ -276,6 +280,35 @@ quickdot/
 - Global design tokens (the prototype's `:root` CSS variables, Google Fonts)
   live in `src/styles.scss` / `src/index.html`; per-page styles are ported
   into each component's `.scss` faithfully from `quickdot.html`.
+
+### v2 redesign [post-launch, ADR-0022]
+
+- **Theme:** `core/preferences.service.ts` holds theme (auto/light/dark)
+  and layout (bubbles/ledger) in localStorage and sets `data-theme` on
+  `<html>`; an inline script in `src/index.html` does the same before first
+  paint. Dark tokens live under `:root[data-theme="dark"]` in `styles.scss`.
+- **Participant colours:** `RoomService.slots` gives each other participant
+  the lowest free slot (0-6, `--p0`..`--p6`) as they appear, per viewer, for
+  the life of the room. Items carry `senderId` and `at` for the coloured
+  name and the relative time.
+- **Room header:** centred invite while waiting; once anyone joins it
+  collapses to one row (`.compact`) with a code chip, countdown, the room ⋯
+  menu and a two-tap leave X. Under 440px the chip and countdown give way to
+  a mini countdown next to your name; under 900px the brandmark is hidden in
+  a room, and the footer is hidden in a room at every width (`App` host
+  class `in-room`).
+- **Room menu:** copy/share link (system share sheet on touch), copy code,
+  layout and theme (`menuitemradio`), leave, and for the creator "End room
+  for everyone" (two taps). Uses the same ARIA menu keyboard handling as the
+  item menu.
+- **End for everyone:** `core/host-token.ts` keeps the `hostToken` from
+  `POST /api/rooms` in sessionStorage; `RoomService.endRoom` sends
+  `end-room`; peers receive `room-ended` and `endedBy` routes them home.
+- **Files:** drag-and-drop anywhere (`.dropveil`), paste anywhere (files
+  send, text goes to the composer), multi-select; all go through
+  `RoomService`'s one-at-a-time upload queue.
+- **Full room:** `ROOM_FULL` shows a dismissable `alertdialog` notice
+  (`core/notice.service.ts`, rendered in `app.html`) instead of a toast.
 
 ### Reconnect UI [Stage 6]
 
