@@ -669,3 +669,42 @@ field; old clients ignore them. A host who closes their tab loses the
 ability to end the room for everyone, which matches "leaving drops host"
 in the prototype. Human accessibility checks should cover dark mode and
 the new menus.
+
+## ADR-0023: Responsive layout fixes from a viewport sweep
+
+**Date:** 2026-10-10
+**Stage:** 7 (post-launch polish)
+
+**Context:** Capturing README screenshots showed the fixed `quickdot●`
+brandmark sitting on the landing kicker at iPhone size. A scripted sweep
+(Playwright, 13 viewports from 320×568 to 1440×900 including landscape
+phones, every page and room state) checked for overlaps, horizontal
+overflow, clipped text, an off-screen composer and clipped menus. It found
+seven problems:
+1. Landing: brandmark overlaps the kicker on short and landscape screens.
+2. Room header (≤440px): the mini countdown was the part that got cut off
+   by the ellipsis, from 390px down; at 320px it vanished entirely.
+3. Composer placeholder wrapped to two lines and was clipped at 320px.
+4. 900–960px: the brandmark crowds the room header's left edge.
+5. Landscape phones (≤500px tall): the waiting invite pushed the composer
+   off-screen.
+6. The ⋯ menu on the newest messages hung below the feed, hiding Report.
+7. The composer textarea was 15px, so iOS Safari zoomed the page on focus.
+
+**Decision:**
+- Landing `.wrap` gets 72px top padding to clear the fixed brandmark.
+- In the compact header, `.mename` is a flex row: your name truncates and
+  the countdown (`.ttlmini`) never shrinks.
+- Placeholder is single-line with an ellipsis; composer side padding drops
+  to 8px at ≤360px.
+- The in-room brandmark breakpoint moves from 900px to 960px.
+- `@media (max-height: 500px)`: the waiting invite hides the link graphic,
+  tightens spacing, shrinks the code card to 46px and hides the empty-feed
+  hint.
+- The message menu flips upwards when there's under 140px of feed below
+  its trigger and more room above (`menuUp` signal, `.menu.up`).
+- Textarea is 16px on coarse pointers (`@media (pointer: coarse)`).
+
+**Consequences:** No behaviour change on desktop beyond the menu flip near
+the bottom of the feed. Long fun names now show an ellipsis earlier on
+small phones in exchange for an always-visible countdown.

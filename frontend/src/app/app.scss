@@ -10,7 +10,9 @@
   display: none;
 }
 
-@media (max-width: 900px) {
+// The room column is 720px wide, so below ~960px its header runs into the
+// brandmark's corner.
+@media (max-width: 960px) {
   :host(.in-room) .topbar {
     display: none;
   }

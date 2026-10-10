@@ -393,14 +393,25 @@
   }
 
   .state,
-  .mename {
+  .mename .mn {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
+  // The name gives way first, so the countdown never gets cut off.
   .mename {
+    display: flex;
     margin-top: 1px;
+
+    .mn {
+      min-width: 0;
+    }
+  }
+
+  .ttlmini {
+    flex: none;
+    white-space: pre;
   }
 
   .codecard {
@@ -428,6 +439,33 @@
     .hbtn {
       min-width: 38px;
     }
+  }
+}
+
+// Landscape phones: the full invite would push the composer off-screen, so
+// drop the big link graphic and tighten everything around the code.
+@media (max-height: 500px) {
+  .roomhead:not(.compact) {
+    gap: 8px;
+    padding: 12px 18px 10px;
+
+    .link {
+      display: none;
+    }
+
+    .roomopts,
+    .leave {
+      top: 6px;
+    }
+  }
+
+  .codeval,
+  .linkbtn {
+    height: 46px;
+  }
+
+  .empty {
+    display: none;
   }
 }
 
@@ -638,6 +676,12 @@
 // items would paint over an open ⋯ menu. Lift the item that owns it.
 .item:has(.menu) {
   z-index: 5;
+}
+
+// Near the bottom of the feed the menu opens upwards from the ⋯ button.
+.item .menu.up {
+  top: auto;
+  bottom: calc(100% - 4px);
 }
 
 @media (hover: none) {
@@ -1035,5 +1079,23 @@
 
   &::placeholder {
     color: var(--ink-faint);
+    // One line only: on a 320px phone it would wrap and be clipped.
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// iOS zooms the page into any field under 16px when it's focused.
+@media (pointer: coarse) {
+  .ta {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .composer {
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }

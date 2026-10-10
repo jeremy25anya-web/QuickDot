@@ -31,7 +31,7 @@
       </div>
       @if (room.you(); as you) {
         <div class="mename">
-          you're <b>{{ you.name }}</b><span class="ttlmini" [class.warn]="ttlWarn()" aria-hidden="true"> · {{ ttlClock() }}</span>
+          <span class="mn">you're <b>{{ you.name }}</b></span><span class="ttlmini" [class.warn]="ttlWarn()" aria-hidden="true"> · {{ ttlClock() }}</span>
         </div>
       }
     </div>
@@ -194,6 +194,7 @@
         @if (menuFor() === item.id) {
           <div
             class="menu"
+            [class.up]="menuUp()"
             role="menu"
             aria-label="Message actions"
             [id]="'menu-' + item.id"

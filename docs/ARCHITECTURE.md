@@ -294,9 +294,13 @@ quickdot/
 - **Room header:** centred invite while waiting; once anyone joins it
   collapses to one row (`.compact`) with a code chip, countdown, the room ⋯
   menu and a two-tap leave X. Under 440px the chip and countdown give way to
-  a mini countdown next to your name; under 900px the brandmark is hidden in
-  a room, and the footer is hidden in a room at every width (`App` host
-  class `in-room`).
+  a mini countdown next to your name (the name truncates first, so the
+  countdown always shows); under 960px the brandmark is hidden in a room,
+  and the footer is hidden in a room at every width (`App` host class
+  `in-room`). Under 500px tall (landscape phones) the waiting invite drops
+  the link graphic and the empty-feed hint so the composer stays on screen.
+- **Message ⋯ menu** opens upwards (`.menu.up`) when there's less than
+  140px of feed below its trigger, so Report is never clipped by the feed.
 - **Room menu:** copy/share link (system share sheet on touch), copy code,
   layout and theme (`menuitemradio`), leave, and for the creator "End room
   for everyone" (two taps). Uses the same ARIA menu keyboard handling as the

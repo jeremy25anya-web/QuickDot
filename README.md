@@ -18,11 +18,24 @@ server.
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/media/room-mobile.png" alt="The same room on a phone"></td>
+    <td width="33%"><img src="docs/media/landing-mobile.png" alt="Landing page on a phone"></td>
+    <td width="33%"><img src="docs/media/room-mobile.png" alt="An active room on a phone"></td>
     <td width="33%"><img src="docs/media/room-mobile-dark.png" alt="The room on a phone in dark mode"></td>
-    <td width="33%"><img src="docs/media/landing-desktop.png" alt="Landing page"><br><br><img src="docs/media/waiting-desktop.png" alt="A new room waiting for someone to join"></td>
+  </tr>
+  <tr>
+    <td colspan="3">
+      <img width="49%" src="docs/media/landing-desktop.png" alt="Landing page on desktop">
+      <img width="49%" src="docs/media/waiting-desktop.png" alt="A new room waiting for someone to join">
+    </td>
   </tr>
 </table>
+
+<details>
+<summary>Dark mode on desktop</summary>
+
+![An active room in dark mode](docs/media/room-desktop-dark.png)
+
+</details>
 
 ## Features
 
@@ -61,7 +74,7 @@ server.
   truncated IP hash and the file's SHA-256, size and type. The SHA-256 is
   computed as a running digest while the file streams. Sentry scrubs
   exception messages on both the frontend and the backend.
-- **Every decision is written down.** There are [22 ADRs](docs/DECISIONS.md),
+- **Every decision is written down.** There are [23 ADRs](docs/DECISIONS.md),
   an [as-built architecture](docs/ARCHITECTURE.md) and the original
   [spec](SPEC.md) with its staged build plan.
 

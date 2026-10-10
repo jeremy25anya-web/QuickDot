@@ -28,6 +28,8 @@ type Flashable = 'code' | 'chip' | 'link';
 
 const LEAVE_ARM_MS = 3000;
 const FLASH_MS = 1400;
+/** Space a ⋯ menu needs below its trigger: three actions plus padding. */
+const MENU_ROOM = 140;
 
 @Component({
   selector: 'app-room',
@@ -50,6 +52,8 @@ export class Room implements OnInit, OnDestroy {
   protected readonly now = signal(Date.now());
   /** Id of the item whose ⋯ menu is open. */
   protected readonly menuFor = signal<string | null>(null);
+  /** Open the ⋯ menu upwards when there isn't room for it below the trigger. */
+  protected readonly menuUp = signal(false);
   protected readonly roomMenuOpen = signal(false);
   /** The first tap on the X arms it; a second tap within 3 s leaves. */
   protected readonly leaveArmed = signal(false);
@@ -414,6 +418,15 @@ export class Room implements OnInit, OnDestroy {
     this.closeMenu(false);
     this.disarmLeave();
     this.menuTrigger = event.currentTarget as HTMLElement;
+    // The feed clips its overflow, so a menu on one of the last items would
+    // hang below the composer and hide Report. Flip it when it won't fit.
+    const feed = this.feedEl()?.nativeElement.getBoundingClientRect();
+    const trigger = this.menuTrigger.getBoundingClientRect();
+    if (feed) {
+      const below = feed.bottom - trigger.bottom;
+      const above = trigger.top - feed.top;
+      this.menuUp.set(below < MENU_ROOM && above > below);
+    }
     this.menuFor.set(item.id);
     this.focusMenuItem(0);
   }
