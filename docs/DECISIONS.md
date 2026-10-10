@@ -785,3 +785,39 @@ room menu.
 
 **Consequences:** Verified at 1366×657 and 390×664: the toast is centred to
 the pixel, and the theme toggle persists across reloads.
+
+## ADR-0027: Bottom-left toast stack; landing spacing on an 8px rhythm
+
+**Date:** 2026-10-10
+**Stage:** 7 (post-launch polish)
+
+**Context:** Feedback after ADR-0025/0026: toasts should sit out of the way
+in the bottom-left corner like a chat log, not centred; the landing theme
+toggle was too faint to notice; and ADR-0025's height breakpoints squeezed
+the landing page (headline down to ~52px and gaps of 14–26px on a
+1366×657 window) when the original sizes were preferred.
+
+**Decision:**
+- **Toasts:** `ToastService` keeps a list (max 3, newest last, each on its
+  own timer; a repeated message restarts instead of duplicating). The
+  `.toaster` region is fixed 16px from the bottom-left corner (plus safe-area
+  insets), 96px up in a room so it clears the composer, at most 380px wide
+  and slides in from the left. This follows the desktop snackbar pattern
+  (e.g. Material): bottom-left, away from the centred content. The
+  `status`/`alert` live regions are unchanged.
+- **Theme toggle:** a raised 44px button (paper-raised fill, hairline
+  border, shadow), matching the room's code chip, instead of a bare icon.
+- **Landing spacing:** every vertical gap is a multiple of one unit `--u`
+  on an 8px grid: kicker→headline 3u, headline→subhead 2u (they belong
+  together), subhead→actions 5u, between actions 2u, actions→note 4u, page
+  padding 4u. `--u` is 8px in windows ≥695px tall and eases linearly below
+  (`clamp(4px, 3.6vh - 17px, 8px)`; phones ease slightly sooner). The
+  headline is `clamp(26px, min(8.5vw, 9.6vh), 64px)`, so it stays 63–64px
+  on a 657px-tall window. The ADR-0025 height breakpoints are gone; the
+  one-row footer stays.
+
+**Consequences:** At ≥695px tall the landing page matches the original
+spacing (24/16/40/16/32 vs the original 22/18/40/14/34). No scrollbar from
+1024×600 to 1920×1080 or on 360–414px phones, with at least 7px to spare
+(16px at 1366×657). A 320×568 phone and landscape phones still scroll
+because the content is taller than the screen.

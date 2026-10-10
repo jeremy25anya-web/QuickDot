@@ -287,9 +287,11 @@ quickdot/
   and layout (bubbles/ledger) in localStorage and sets `data-theme` on
   `<html>`; an inline script in `src/index.html` does the same before first
   paint. Dark tokens live under `:root[data-theme="dark"]` in `styles.scss`.
-- **Toasts (ADR-0026):** `ToastService` messages render in a fixed,
-  full-width `.toaster` region that centres them with flexbox; duration
-  scales with message length (capped at 8 s).
+- **Toasts (ADR-0027):** `ToastService` keeps up to 3 messages, each on its
+  own timer (length-scaled, capped at 8 s). They stack in a fixed `.toaster`
+  region in the bottom-left corner (raised above the composer in a room).
+- **Landing spacing (ADR-0027):** vertical gaps are multiples of `--u`, an
+  8px unit that eases on short windows; the headline scales with `vh` too.
 - **Landing theme toggle (ADR-0026):** a sun/moon button top right calls
   `PreferencesService.toggleTheme()`, which flips the resolved theme (`dark`
   signal) and saves it as an explicit light/dark preference.

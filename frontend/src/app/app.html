@@ -22,23 +22,22 @@
   </div>
 }
 
-<!-- Always-present live regions so toasts are announced: role="status" for
+<!-- Toasts stack in the bottom-left corner, newest at the bottom. Two
+     always-present live regions so they're announced: role="status" for
      confirmations, role="alert" for errors. Errors also get a ⚠ so they
-     don't rely on color alone (WCAG 1.4.1). The region is fixed, full-width
-     and centres the toast with flexbox, so the entry animation (which
-     animates transform) can't knock it off-centre. -->
+     don't rely on color alone (WCAG 1.4.1). -->
 <div class="toaster">
   <div role="status">
-    @if (toast.current(); as t) {
+    @for (t of toast.toasts(); track t.id) {
       @if (!t.error) {
-        <div class="toast on">{{ t.message }}</div>
+        <div class="toast">{{ t.message }}</div>
       }
     }
   </div>
   <div role="alert">
-    @if (toast.current(); as t) {
+    @for (t of toast.toasts(); track t.id) {
       @if (t.error) {
-        <div class="toast on err"><span aria-hidden="true">⚠ </span>{{ t.message }}</div>
+        <div class="toast err"><span aria-hidden="true">⚠ </span>{{ t.message }}</div>
       }
     }
   </div>

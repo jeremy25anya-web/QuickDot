@@ -1,6 +1,19 @@
 :host {
   flex: 1;
   display: flex;
+
+  // Vertical rhythm: every gap is a multiple of one unit on an 8px grid.
+  // The unit is a full 8px in windows 695px tall or more, then eases
+  // linearly (about 6.7px at 657px, 4.6px at 600px), so short laptop windows
+  // fit without a scrollbar while normal ones keep the full spacing.
+  // Proximity follows meaning: the headline hugs its subhead (2u), the
+  // sections breathe (4–5u).
+  --u: clamp(4px, calc(3.6vh - 17px), 8px);
+
+  // Phones wrap the copy onto more lines, so the unit eases sooner there.
+  @media (max-width: 760px) {
+    --u: clamp(4px, calc(3.6vh - 17.5px), 8px);
+  }
 }
 
 // Top right, level with the fixed brandmark on the left.
@@ -14,13 +27,16 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 10px;
-  color: var(--ink-faint);
-  transition: color .18s, background .18s;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  box-shadow: var(--shadow);
+  transition: color .18s, border-color .18s;
 
   &:hover {
     color: var(--ink);
-    background: var(--paper-raised);
+    border-color: var(--line-strong);
   }
 }
 
@@ -33,18 +49,14 @@
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 32px 24px;
-
-  // Short screens: tighter rhythm so the page fits without a scrollbar.
-  @media (max-height: 760px) {
-    padding-top: 20px;
-    padding-bottom: 20px;
-  }
+  padding: calc(4 * var(--u)) 24px;
 
   // Narrow screens: the hero spans the width under the fixed brandmark
-  // (top ~60px), so keep it clear. Wider, the brandmark sits off to the side.
+  // (bottom edge ~40px), so keep it clear. Wider, the brandmark sits off to
+  // the side.
   @media (max-width: 760px) {
-    padding-top: 60px;
+    padding-top: 56px;
+    padding-bottom: calc(2 * var(--u));
   }
 }
 
@@ -60,7 +72,7 @@
   letter-spacing: .18em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  margin-bottom: 22px;
+  margin-bottom: calc(3 * var(--u));
 }
 
 h1 {
@@ -68,10 +80,11 @@ h1 {
   font-weight: 600;
   letter-spacing: -.03em;
   line-height: 1.02;
-  // "between two devices." is nowrap; 8.5vw keeps it inside a 320px phone,
-  // 8vh keeps two lines of it from crowding a short laptop window.
-  font-size: clamp(26px, min(8.5vw, 8vh), 64px);
-  margin: 0 0 18px;
+  // "between two devices." is nowrap; 8.5vw keeps it inside a 320px phone.
+  // 9.6vh holds about the full 64px down to a 667px-tall window, then
+  // scales with the spacing unit.
+  font-size: clamp(26px, min(8.5vw, 9.6vh), 64px);
+  margin: 0 0 calc(2 * var(--u));
 
   .em {
     white-space: nowrap;
@@ -95,13 +108,13 @@ h1 {
   font-size: 17px;
   color: var(--ink-soft);
   max-width: 34ch;
-  margin: 0 auto 40px;
+  margin: 0 auto calc(5 * var(--u));
 }
 
 .actions {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: calc(2 * var(--u));
   width: 100%;
   max-width: 340px;
   margin: 0 auto;
@@ -214,7 +227,7 @@ h1 {
 }
 
 .note {
-  margin-top: 34px;
+  margin-top: calc(4 * var(--u));
   font-size: 13px;
   color: var(--ink-faint);
   line-height: 1.6;
@@ -222,19 +235,5 @@ h1 {
   b {
     color: var(--ink-soft);
     font-weight: 500;
-  }
-}
-
-@media (max-height: 760px) {
-  .kicker {
-    margin-bottom: 14px;
-  }
-
-  .sub {
-    margin-bottom: 26px;
-  }
-
-  .note {
-    margin-top: 22px;
   }
 }
