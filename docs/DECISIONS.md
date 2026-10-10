@@ -734,3 +734,25 @@ page, and these crashes stop reaching Sentry. Verified on a production
 build with each API removed in turn: the note shows, nothing throws and no
 Sentry request is made; a modern browser is unaffected. Plain-HTTP origins
 other than localhost lack `crypto.randomUUID`, so they also get the note.
+
+## ADR-0025: Landing page fits common laptop windows without scrolling
+
+**Date:** 2026-10-10
+**Stage:** 7 (post-launch polish)
+
+**Context:** The landing page needed 764px of height on desktop, so common
+laptop browser windows (1366×657, 1536×730, 1280×720) showed a scrollbar
+with nothing to scroll to. ADR-0023's 72px top padding (to clear the fixed
+brandmark) made it worse, even though on wide screens the brandmark sits
+beside the hero, not above it.
+
+**Decision:**
+- The landing top padding that clears the brandmark (now 60px) applies only
+  at ≤760px wide; wider screens use 32px, or 20px when ≤760px tall.
+- The headline scales with height too: `clamp(26px, min(8.5vw, 8vh), 64px)`.
+- At ≤760px tall the kicker, subhead and note margins tighten.
+- The footer is one row at ≥640px wide, and its padding drops to 10/12px.
+
+**Consequences:** No scrollbar from 1024×600 up to 1920×1080, or on a
+390×664 phone. A 320×568 phone or a landscape phone still scrolls, since the
+content is taller than those screens.

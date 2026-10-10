@@ -53,7 +53,7 @@
 }
 
 footer {
-  padding: 22px;
+  padding: 10px 22px 12px;
   text-align: center;
   font-size: 12px;
   color: var(--ink-faint);
@@ -89,6 +89,21 @@ footer {
         color: var(--ink);
         text-decoration: underline;
       }
+    }
+  }
+}
+
+// Wide screens: one row instead of two, so short laptop windows don't scroll.
+@media (min-width: 640px) {
+  footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 22px;
+
+    .legal {
+      margin-top: 0;
     }
   }
 }

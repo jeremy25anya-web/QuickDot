@@ -12,9 +12,19 @@
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  // The fixed brandmark takes the top ~60px; keep the hero clear of it on
-  // short and landscape screens, where the hero would otherwise reach the top.
-  padding: 72px 24px 32px;
+  padding: 32px 24px;
+
+  // Short screens: tighter rhythm so the page fits without a scrollbar.
+  @media (max-height: 760px) {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  // Narrow screens: the hero spans the width under the fixed brandmark
+  // (top ~60px), so keep it clear. Wider, the brandmark sits off to the side.
+  @media (max-width: 760px) {
+    padding-top: 60px;
+  }
 }
 
 .hero {
@@ -37,7 +47,9 @@ h1 {
   font-weight: 600;
   letter-spacing: -.03em;
   line-height: 1.02;
-  font-size: clamp(26px, 8.5vw, 64px); // "between two devices." is nowrap; 8.5vw keeps it inside a 320px phone
+  // "between two devices." is nowrap; 8.5vw keeps it inside a 320px phone,
+  // 8vh keeps two lines of it from crowding a short laptop window.
+  font-size: clamp(26px, min(8.5vw, 8vh), 64px);
   margin: 0 0 18px;
 
   .em {
@@ -189,5 +201,19 @@ h1 {
   b {
     color: var(--ink-soft);
     font-weight: 500;
+  }
+}
+
+@media (max-height: 760px) {
+  .kicker {
+    margin-bottom: 14px;
+  }
+
+  .sub {
+    margin-bottom: 26px;
+  }
+
+  .note {
+    margin-top: 22px;
   }
 }
