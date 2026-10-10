@@ -29,6 +29,13 @@ a record of what was asked and answered.
       flag themselves as "not legal advice" — the spec's Definition of Done
       requires both be lawyer-reviewed before launch.
 
+- [ ] **Landing page: logo overlaps the kicker on short phone viewports.**
+      Found while capturing README screenshots (2026-10-10) at iPhone 14
+      size (390×664 visible): the fixed `quickdot●` wordmark sits on top of
+      "NO ACCOUNT · NO DOWNLOAD…". Needs top clearance on the hero at small
+      heights. A mobile landing shot was left out of `docs/media/` until
+      it's fixed.
+
 ## Resolved
 
 - [x] **v2 redesign shipped** — 2026-10-09 (ADR-0022). Frontend live via
