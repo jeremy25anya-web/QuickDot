@@ -21,8 +21,30 @@
       try { pref = localStorage.getItem('qd-theme') || 'auto'; } catch (e) {}
       var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+
+      /* Angular relies on APIs that need Chrome 93+, Safari 15.4+ or
+         Firefox 95+. Older browsers would crash on bootstrap and show a
+         blank page, so flag them: the note in <app-root> shows instead and
+         main.ts doesn't start the app (or Sentry). */
+      var supported = typeof Object.hasOwn === 'function' &&
+        typeof [].at === 'function' &&
+        !!(window.crypto && typeof window.crypto.randomUUID === 'function');
+      if (!supported) document.documentElement.setAttribute('data-unsupported', '');
     })();
   </script>
+  <style>
+    .unsupported { display: none; }
+    [data-unsupported] .unsupported {
+      display: block;
+      max-width: 34ch;
+      margin: 30vh auto 0;
+      padding: 0 22px;
+      text-align: center;
+      font: 16px/1.5 Inter, system-ui, sans-serif;
+      color: var(--ink, #171C1A);
+    }
+    [data-unsupported] .unsupported h1 { font-size: 22px; margin: 0 0 10px; }
+  </style>
   <!-- Link previews (Open Graph / Twitter). URLs must be absolute. -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="QuickDot">
@@ -39,6 +61,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <app-root></app-root>
+  <!-- Angular replaces this on bootstrap; it only stays on old browsers. -->
+  <app-root>
+    <div class="unsupported">
+      <h1>Your browser is out of date</h1>
+      <p>QuickDot needs a newer browser. Update your browser (or your phone's software) and try again.</p>
+    </div>
+  </app-root>
 </body>
 </html>

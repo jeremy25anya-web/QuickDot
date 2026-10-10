@@ -287,6 +287,11 @@ quickdot/
   and layout (bubbles/ledger) in localStorage and sets `data-theme` on
   `<html>`; an inline script in `src/index.html` does the same before first
   paint. Dark tokens live under `:root[data-theme="dark"]` in `styles.scss`.
+- **Old browsers (ADR-0024):** the same inline script checks for
+  `Object.hasOwn`, `Array.prototype.at` and `crypto.randomUUID` (Chrome 93+,
+  Safari 15.4+, Firefox 95+). Without them it sets `data-unsupported` on
+  `<html>`, which reveals a static "Your browser is out of date" note inside
+  `<app-root>`; `main.ts` then skips `initSentry()` and bootstrap.
 - **Participant colours:** `RoomService.slots` gives each other participant
   the lowest free slot (0-6, `--p0`..`--p6`) as they appear, per viewer, for
   the life of the room. Items carry `senderId` and `at` for the coloured

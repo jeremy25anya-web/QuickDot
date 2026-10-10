@@ -74,7 +74,7 @@ server.
   truncated IP hash and the file's SHA-256, size and type. The SHA-256 is
   computed as a running digest while the file streams. Sentry scrubs
   exception messages on both the frontend and the backend.
-- **Every decision is written down.** There are [23 ADRs](docs/DECISIONS.md),
+- **Every decision is written down.** There are [24 ADRs](docs/DECISIONS.md),
   an [as-built architecture](docs/ARCHITECTURE.md) and the original
   [spec](SPEC.md) with its staged build plan.
 

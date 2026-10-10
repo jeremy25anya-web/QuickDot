@@ -708,3 +708,29 @@ seven problems:
 **Consequences:** No behaviour change on desktop beyond the menu flip near
 the bottom of the feed. Long fun names now show an ellipsis earlier on
 small phones in exchange for an always-visible countdown.
+
+## ADR-0024: Show an "update your browser" note instead of crashing on old browsers
+
+**Date:** 2026-10-10
+**Stage:** 7 (post-launch polish)
+
+**Context:** Sentry reported `TypeError` thrown during bootstrap, inside
+Angular's input-change tracking (`Object.hasOwn(...)`) while the root
+template set `routerLink` on the footer links. `Object.hasOwn` needs Chrome
+93, Safari 15.4 or Firefox 92; the bundle also uses `Array.prototype.at`
+and our `crypto.randomUUID` (Firefox 95). On an older browser the app
+crashed before rendering anything, so the visitor saw a blank page. Angular
+22 doesn't support those browsers.
+
+**Decision:** Don't polyfill piecemeal: older browsers also lack CSS the UI
+relies on (`color-mix`, `:has`), so a "working" app would still look broken.
+Instead the inline `<head>` script feature-detects the three APIs and sets
+`data-unsupported` on `<html>`. A static note inside `<app-root>`, hidden by
+default, becomes visible; Angular would replace it on bootstrap, but
+`main.ts` skips bootstrap and `initSentry()` when the flag is set.
+
+**Consequences:** Outdated browsers get a clear message instead of a blank
+page, and these crashes stop reaching Sentry. Verified on a production
+build with each API removed in turn: the note shows, nothing throws and no
+Sentry request is made; a modern browser is unaffected. Plain-HTTP origins
+other than localhost lack `crypto.randomUUID`, so they also get the note.
