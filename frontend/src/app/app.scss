@@ -108,11 +108,21 @@ footer {
   }
 }
 
-.toast {
+.toaster {
   position: fixed;
-  left: 50%;
-  bottom: 88px;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: calc(88px + env(safe-area-inset-bottom)); // clear of the room composer
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.toast {
+  max-width: min(100%, 440px);
   background: var(--solid);
   color: var(--solid-ink);
   padding: 11px 17px;
@@ -120,9 +130,8 @@ footer {
   font-size: 13.5px;
   font-weight: 500;
   box-shadow: var(--shadow);
-  max-width: 88vw;
   text-align: center;
-  z-index: 50;
+  pointer-events: auto;
   animation: rise .3s cubic-bezier(.2, .8, .2, 1) both;
 
   &.err {

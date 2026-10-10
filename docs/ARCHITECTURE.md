@@ -287,6 +287,12 @@ quickdot/
   and layout (bubbles/ledger) in localStorage and sets `data-theme` on
   `<html>`; an inline script in `src/index.html` does the same before first
   paint. Dark tokens live under `:root[data-theme="dark"]` in `styles.scss`.
+- **Toasts (ADR-0026):** `ToastService` messages render in a fixed,
+  full-width `.toaster` region that centres them with flexbox; duration
+  scales with message length (capped at 8 s).
+- **Landing theme toggle (ADR-0026):** a sun/moon button top right calls
+  `PreferencesService.toggleTheme()`, which flips the resolved theme (`dark`
+  signal) and saves it as an explicit light/dark preference.
 - **Old browsers (ADR-0024):** the same inline script checks for
   `Object.hasOwn`, `Array.prototype.at` and `crypto.randomUUID` (Chrome 93+,
   Safari 15.4+, Firefox 95+). Without them it sets `data-unsupported` on

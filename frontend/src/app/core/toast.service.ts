@@ -13,6 +13,8 @@ export class ToastService {
   show(message: string, error = false): void {
     this.current.set({ message, error });
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.current.set(null), 2600);
+    // Long enough to read: about 4 s for a short line, longer for a sentence.
+    const ms = Math.min(8000, 2500 + message.length * 45);
+    this.timer = setTimeout(() => this.current.set(null), ms);
   }
 }

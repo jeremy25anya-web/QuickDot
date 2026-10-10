@@ -36,6 +36,8 @@ export class PreferencesService {
 
   readonly theme = signal<ThemePref>(this.parseTheme(read(THEME_KEY)));
   readonly layout = signal<Layout>(read(LAYOUT_KEY) === 'ledger' ? 'ledger' : 'bubbles');
+  /** The theme actually showing, after resolving "auto" against the system. */
+  readonly dark = signal(false);
 
   constructor() {
     this.applyTheme();
@@ -57,6 +59,11 @@ export class PreferencesService {
     this.applyTheme();
   }
 
+  /** Flip whatever is showing; the choice becomes explicit (light or dark). */
+  toggleTheme(): void {
+    this.setTheme(this.dark() ? 'light' : 'dark');
+  }
+
   setLayout(layout: Layout): void {
     this.layout.set(layout);
     write(LAYOUT_KEY, layout);
@@ -65,6 +72,7 @@ export class PreferencesService {
   private applyTheme(): void {
     const pref = this.theme();
     const dark = pref === 'dark' || (pref === 'auto' && this.systemDark.matches);
+    this.dark.set(dark);
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   }
 

@@ -24,18 +24,22 @@
 
 <!-- Always-present live regions so toasts are announced: role="status" for
      confirmations, role="alert" for errors. Errors also get a ⚠ so they
-     don't rely on color alone (WCAG 1.4.1). -->
-<div role="status">
-  @if (toast.current(); as t) {
-    @if (!t.error) {
-      <div class="toast on">{{ t.message }}</div>
+     don't rely on color alone (WCAG 1.4.1). The region is fixed, full-width
+     and centres the toast with flexbox, so the entry animation (which
+     animates transform) can't knock it off-centre. -->
+<div class="toaster">
+  <div role="status">
+    @if (toast.current(); as t) {
+      @if (!t.error) {
+        <div class="toast on">{{ t.message }}</div>
+      }
     }
-  }
-</div>
-<div role="alert">
-  @if (toast.current(); as t) {
-    @if (t.error) {
-      <div class="toast on err"><span aria-hidden="true">⚠ </span>{{ t.message }}</div>
+  </div>
+  <div role="alert">
+    @if (toast.current(); as t) {
+      @if (t.error) {
+        <div class="toast on err"><span aria-hidden="true">⚠ </span>{{ t.message }}</div>
+      }
     }
-  }
+  </div>
 </div>

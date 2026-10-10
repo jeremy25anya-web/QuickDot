@@ -3,6 +3,7 @@ import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { saveHostToken } from '../core/host-token';
 import { ROOM_CODE_LENGTH, extractCode } from '../core/join-code';
+import { PreferencesService } from '../core/preferences.service';
 import { RoomApiService } from '../core/room-api.service';
 import { ToastService } from '../core/toast.service';
 
@@ -15,6 +16,7 @@ export class Landing implements OnDestroy {
   private readonly roomApi = inject(RoomApiService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  protected readonly prefs = inject(PreferencesService);
 
   readonly joinCode = signal('');
   readonly creating = signal(false);

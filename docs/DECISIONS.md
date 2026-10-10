@@ -756,3 +756,32 @@ beside the hero, not above it.
 **Consequences:** No scrollbar from 1024×600 up to 1920×1080, or on a
 390×664 phone. A 320×568 phone or a landscape phone still scrolls, since the
 content is taller than those screens.
+
+## ADR-0026: Centred toast region; theme toggle on the landing page
+
+**Date:** 2026-10-10
+**Stage:** 7 (post-launch polish)
+
+**Context:** Toasts (e.g. "You left the room…") appeared right of centre.
+`.toast` centred itself with `left: 50%; transform: translateX(-50%)`, but
+its `rise` entry animation ends on `transform: none` with `fill-mode: both`,
+which replaced the centring transform, so the toast's left edge sat at the
+middle of the screen. Separately, the theme could only be changed from the
+room menu.
+
+**Decision:**
+- Toasts render inside a fixed, full-width `.toaster` region (bottom 88px
+  plus the safe-area inset, clear of the room composer) that centres them
+  with flexbox. The toast itself has no positioning transform, so any
+  animation is free to use `transform`. Both live regions (`status` and
+  `alert`) stay always present inside it.
+- Toast duration scales with length (2.5 s + 45 ms per character, capped at
+  8 s), so a sentence-long message is readable; it used to be a flat 2.6 s.
+- A sun/moon icon button sits top right on the landing page, level with the
+  brandmark. It flips whichever theme is showing and saves the choice as an
+  explicit light/dark preference (`PreferencesService.toggleTheme`, backed
+  by a new `dark` signal holding the resolved theme). "Auto" stays available
+  in the room menu.
+
+**Consequences:** Verified at 1366×657 and 390×664: the toast is centred to
+the pixel, and the theme toggle persists across reloads.

@@ -3,6 +3,27 @@
   display: flex;
 }
 
+// Top right, level with the fixed brandmark on the left.
+.themetoggle {
+  position: fixed;
+  top: 9px;
+  right: 14px;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  color: var(--ink-faint);
+  transition: color .18s, background .18s;
+
+  &:hover {
+    color: var(--ink);
+    background: var(--paper-raised);
+  }
+}
+
 .wrap {
   flex: 1;
   display: flex;
