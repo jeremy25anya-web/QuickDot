@@ -12,9 +12,9 @@ a record of what was asked and answered.
 
 ## Open
 
-- [ ] **Redeploy the frontend for ADR-0028** (room-ended hang). Until it
+- [x] **Redeploy the frontend for ADR-0028** (room-ended hang). Until it
       ships, everyone still in a room freezes when the host ends it. Then
-      re-record the demo video (see `docs/LINKEDIN_POST.md`).
+      re-record the demo video.
 - [ ] **Enable Cloudflare Web Analytics** (Stage 7). No code needed: the
       site is served through Cloudflare, so the beacon can be injected
       automatically. Cloudflare dashboard → Analytics & Logs → Web Analytics

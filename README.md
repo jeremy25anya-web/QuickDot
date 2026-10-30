@@ -14,6 +14,10 @@ in real time. You don't need an account or an app, and nothing is kept. When
 the room ends (someone closes it, or 30 minutes pass), nothing is left on the
 server.
 
+![QuickDot demo: a laptop and a phone share text, a link and an image, then the host ends the room](docs/media/quickdot-demo.gif)
+
+<sub>[Watch the full-quality video](docs/media/quickdot-demo.mp4)</sub>
+
 ![An active QuickDot room on desktop](docs/media/room-desktop.png)
 
 <table>
