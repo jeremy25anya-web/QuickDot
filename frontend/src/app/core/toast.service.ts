@@ -20,9 +20,10 @@ export class ToastService {
 
   show(message: string, error = false): void {
     // The same message again (a double tap, a repeated rejection) just restarts.
-    const others = this.toasts().filter((t) => t.message !== message);
+    // update(), not a read followed by set(): show() is called from effects, and
+    // reading the signal there makes the effect re-trigger itself forever.
     const toast = { id: this.nextId++, message, error };
-    this.toasts.set([...others, toast].slice(-MAX_TOASTS));
+    this.toasts.update((list) => [...list.filter((t) => t.message !== message), toast].slice(-MAX_TOASTS));
     // Long enough to read: about 4 s for a short line, longer for a sentence.
     const ms = Math.min(8000, 2500 + message.length * 45);
     setTimeout(() => this.dismiss(toast.id), ms);

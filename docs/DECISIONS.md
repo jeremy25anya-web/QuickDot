@@ -821,3 +821,23 @@ spacing (24/16/40/16/32 vs the original 22/18/40/14/34). No scrollbar from
 1024×600 to 1920×1080 or on 360–414px phones, with at least 7px to spare
 (16px at 1366×657). A 320×568 phone and landscape phones still scroll
 because the content is taller than the screen.
+
+## ADR-0028: Fix the room-ended hang; toasts never read their own signal
+
+**Date:** 2026-10-29 · **Status:** Accepted
+
+**Context:** Found while recording the demo video against production. When
+the host ended a room, every other participant's tab froze. The room
+component's `endedBy` effect calls `leaveWith()`, which calls
+`ToastService.show()`. Since ADR-0027, `show()` read `this.toasts()` before
+setting it, so the effect tracked the toast signal and re-triggered itself
+without end (the same path covers room-expired and fatal-error). In a test
+it ran the heap out of memory.
+
+**Decision:** `show()` now uses `toasts.update(...)`, which doesn't create a
+dependency. `toast.service.spec.ts` guards it: a `show()` call inside an
+effect runs the effect exactly once.
+
+**Consequences:** Needs a frontend redeploy to reach production (see
+KNOWLEDGE.md). Any future service that is written to from an effect should
+use `update()` rather than read-then-set.
