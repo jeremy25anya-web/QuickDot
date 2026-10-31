@@ -1,11 +1,14 @@
 # Deploy runbook (Stage 0)
 
-Fly.io + Cloudflare Pages remain the production target (see `SPEC.md`).
-Cloud deploy is currently **deferred** — blocked on a Fly.io payment method,
-see ADR-0004 — so development is happening locally, optionally exposed for
-cross-device testing via a Cloudflare Tunnel. Section 1 below is the current
-path; sections 2-4 are the production path to pick back up once billing is
-sorted.
+**As deployed (since 2026-09-28, ADR-0015/0016):**
+
+| Piece | Where | How it ships |
+|---|---|---|
+| Backend | Fly.io, one always-on machine in `yyz` | By hand: `flyctl deploy --ha=false --remote-only` (section 2). The `deploy-backend.yml` workflow is gated off until `FLY_DEPLOY_ENABLED` is set. |
+| Frontend | Cloudflare **Workers** static assets (not Pages), configured by `frontend/wrangler.jsonc` | Automatically: Cloudflare builds and deploys on every push to `main` (about 1-2 minutes). |
+
+Section 1 is the local-development path; sections 2-4 are the production
+runbook the deployment above was built from.
 
 These steps require your own Fly.io / Cloudflare / GitHub accounts — the
 agent cannot complete them (no interactive OAuth). Run them yourself, ideally
@@ -166,7 +169,7 @@ report the cert as issued, then re-verify:
 > hostname; DNS-only is Fly's documented simplest path to certificate
 > issuance and avoids a double layer of TLS termination.
 
-## 4. Frontend → Cloudflare Pages
+## 4. Frontend → Cloudflare Workers (static assets)
 
 **Prerequisite:** Cloudflare Pages' git integration connects to an existing
 GitHub remote — the repo must have a remote and `main` pushed before you can
@@ -188,9 +191,9 @@ Git**, select this repo, and configure:
 | Root directory | `frontend` |
 | Build output directory | `dist/frontend/browser` |
 
-> **If Cloudflare created a Worker instead** (the URL ends in
-> `.workers.dev`, not `.pages.dev` — the dashboard's default Git flow now
-> does this): that's fine, `frontend/wrangler.jsonc` configures it. Use
+> **Production is a Worker** (the URL ends in `.workers.dev`, not
+> `.pages.dev`; the dashboard's default Git flow now does this).
+> `frontend/wrangler.jsonc` configures it. Use
 > Root directory `frontend`, Build command `npm run build`, Deploy command
 > `npx wrangler deploy`, build variable `NODE_VERSION=24`. Without
 > `wrangler.jsonc` the Worker serves nothing and every URL is an empty 404.
@@ -200,8 +203,8 @@ Build output directory is relative to Root directory — with Root =
 `frontend/dist/frontend/browser`. (`frontend` is the Angular project name in
 `angular.json`; confirm with a local `ng build` if that ever changes.)
 
-Add the custom domain `quickdot.amartian.ca` in the Pages project's **Custom
-domains** tab — Cloudflare will add the DNS record for you automatically
+Add the custom domain `quickdot.amartian.ca` in the Worker's **Settings → Domains &
+Routes** — Cloudflare will add the DNS record for you automatically
 since the zone is already on Cloudflare.
 
 Verify:
